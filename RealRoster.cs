@@ -159,7 +159,7 @@ namespace RealRoster
 
                 crewPartWithAssignment(firstPod, getCrewForPod(firstPod.CrewCapacity));
 
-                editor.CrewAssignmentDialog.RefreshCrewLists(nextManifest, false, true);
+                CMAssignmentDialog.Instance.RefreshCrewLists(nextManifest, false, true);
             }
         }
 
@@ -295,7 +295,7 @@ namespace RealRoster
 
             // reset dirty flag
             dirtyFlag = false;
-            editor.CrewAssignmentDialog.RefreshCrewLists(nextManifest, false, true);
+            CMAssignmentDialog.Instance.RefreshCrewLists(nextManifest, false, true);
         }
 
         // This occurs on frames when there was no editor update.
@@ -304,7 +304,7 @@ namespace RealRoster
         void syncDictionary()
         {
             EditorLogic editor = EditorLogic.fetch;
-            VesselCrewManifest nextManifest = editor.CrewAssignmentDialog.GetManifest();
+            VesselCrewManifest nextManifest = CMAssignmentDialog.Instance.GetManifest();
 
             // Scan for crewable parts not yet in our dictionary
             for (int i = 0; i < editor.ship.Count; i++)
