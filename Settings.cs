@@ -4,7 +4,6 @@ using System.Collections;
 using System.Linq;
 using System.Text;
 using UnityEngine;
-using Toolbar;
 
 namespace RealRoster
 {
@@ -41,9 +40,6 @@ namespace RealRoster
             eventRegistered = false;
 
             blackList = new List<String>();
-            blackList.Add("Bob Kerman");
-            blackList.Add("Bill Kerman");
-            blackList.Add("Jebediah Kerman");
         }
 
         public void Reset()
@@ -52,9 +48,6 @@ namespace RealRoster
             crewRandomization = true;
 
             blackList.Clear();
-            blackList.Add("Bob Kerman");
-            blackList.Add("Bill Kerman");
-            blackList.Add("Jebediah Kerman");
         }
 
         public void Load()
