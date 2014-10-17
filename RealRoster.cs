@@ -14,7 +14,7 @@ namespace RealRoster
     {
 
         // If this value is true, print debug messages
-        bool debug = true;
+        bool debug = false;
 
         // This structure holds an association between Parts and their Crew configurations which the user has written
         Dictionary<Part, ProtoCrewMember[]> assignedCrewDictionary = new Dictionary<Part, ProtoCrewMember[]>();
@@ -102,7 +102,7 @@ namespace RealRoster
                         cleanUpManifest();
                     }
                     // Otherwise, just record the user input
-                    else
+                    else if (EditorLogic.fetch.editorScreen == EditorLogic.EditorScreen.Crew)
                     {
                         syncDictionary();
                     }
