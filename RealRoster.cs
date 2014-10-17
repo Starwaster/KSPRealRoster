@@ -217,7 +217,9 @@ namespace RealRoster
 
             while (roster.Count < capacity)
             {
-                ProtoCrewMember newKerb = HighLogic.CurrentGame.CrewRoster.GetNewKerbal();
+                List<ProtoCrewMember> applicants = HighLogic.CurrentGame.CrewRoster.Kerbals(ProtoCrewMember.KerbalType.Applicant, ProtoCrewMember.RosterStatus.Assigned).ToList();
+                ProtoCrewMember newKerb = applicants[UnityEngine.Random.Range(0, (applicants.Count - 1))];
+                HighLogic.CurrentGame.CrewRoster.HireApplicant(newKerb, 0);
                 DebugMessage(newKerb.name + " has been hired.");
                 roster.Add(newKerb);
             }
