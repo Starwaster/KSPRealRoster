@@ -205,7 +205,12 @@ namespace RealRoster
         ProtoCrewMember[] getCrewForPod(int capacity)
         {
             ProtoCrewMember[] crew = new ProtoCrewMember[capacity];
-            List<ProtoCrewMember> roster = HighLogic.CurrentGame.CrewRoster.Kerbals(ProtoCrewMember.KerbalType.Crew, ProtoCrewMember.RosterStatus.Available).ToList();
+			List<ProtoCrewMember> roster = new List<ProtoCrewMember>();
+
+			if (rrSettings.crewRandomization)
+				roster = HighLogic.CurrentGame.CrewRoster.Kerbals(ProtoCrewMember.KerbalType.Crew, ProtoCrewMember.RosterStatus.Available).ToList();
+			else
+				roster = RRScenario.Instance.crewRotationPool;
 
             foreach (ProtoCrewMember kerbal in roster.ToList())
             {
@@ -228,6 +233,10 @@ namespace RealRoster
                 {
                     crew[idx] = roster[UnityEngine.Random.Range(0, (roster.Count - 1))];
                 }
+				//else if (rrSettings.useCrewRotation)
+				//{
+				//	crew[idx] = RRScenario.Instance.GetNextAvailable ();
+				//}
                 else
                 {
                     crew[idx] = roster.First();
