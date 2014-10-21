@@ -202,6 +202,7 @@ namespace RealRoster
         }
 
         // Generates a random crew for the pod, based on settings.
+		// If randomization is off then a sorted roster list is used with Kerbals selected in order. -Starwaster
         ProtoCrewMember[] getCrewForPod(int capacity)
         {
             ProtoCrewMember[] crew = new ProtoCrewMember[capacity];
@@ -210,7 +211,13 @@ namespace RealRoster
 			if (rrSettings.crewRandomization)
 				roster = HighLogic.CurrentGame.CrewRoster.Kerbals(ProtoCrewMember.KerbalType.Crew, ProtoCrewMember.RosterStatus.Available).ToList();
 			else
-				roster = RRScenario.Instance.crewRotationPool;
+			{
+				roster = RRScenario.Instance.CrewRotationPool;
+				Debug.Log ("RRScenario.Instance.crewRotationRoster length = " + RRScenario.Instance.CrewRotationPool.Count.ToString ());
+			}
+			Debug.Log ("Got roster, length = " + roster.Count);
+			foreach (ProtoCrewMember _kerbal in roster)
+				Debug.Log ("            " + _kerbal.name);
 
             foreach (ProtoCrewMember kerbal in roster.ToList())
             {
@@ -219,6 +226,7 @@ namespace RealRoster
                     roster.Remove(kerbal);
                 }
             }
+			Debug.Log ("Processed black list");
 
             while (roster.Count < capacity)
             {
@@ -233,16 +241,17 @@ namespace RealRoster
                 {
                     crew[idx] = roster[UnityEngine.Random.Range(0, (roster.Count - 1))];
                 }
-				//else if (rrSettings.useCrewRotation)
-				//{
-				//	crew[idx] = RRScenario.Instance.GetNextAvailable ();
-				//}
                 else
                 {
-                    crew[idx] = roster.First();
+                    crew[idx] = roster.FirstOrDefault();
+					if ((object)crew[idx] == null)
+						Debug.Log ("Roster returned null result");
                 }
                 roster.Remove(crew[idx]);
-            }
+				Debug.Log ("Roster length = " + roster.Count);
+				foreach (ProtoCrewMember _kerbal in roster)
+					Debug.Log ("- " + _kerbal.name);
+			}
 
             return crew;
         }

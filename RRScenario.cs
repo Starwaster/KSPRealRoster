@@ -15,22 +15,27 @@ namespace RealRoster
 	})]
 	public class RRScenario : ScenarioModule
 	{
-		public static RRScenario Instance
+		public static RRScenario Instance;
+		
+		private List<ProtoCrewMember> crewRotationPool;
+
+		//private List<ProtoCrewMember> _crewRotationPool;
+
+		public IEnumerable<ProtoCrewMember> roster = HighLogic.CurrentGame.CrewRoster.Kerbals(ProtoCrewMember.KerbalType.Crew, ProtoCrewMember.RosterStatus.Available).ToList();
+
+		public List<ProtoCrewMember> CrewRotationPool
 		{
 			get
 			{
-				if (_instance == null)
-				{
-					_instance = new RRScenario();
-				}
-				return _instance;
+				return new List<ProtoCrewMember>(crewRotationPool);
+				//this._crewRotationPool = new List<ProtoCrewMember>(crewRotationPool);
+				Debug.Log ("RealRoster.RRScenario.CrewRotationPool() sending " + this.crewRotationPool.Count.ToString() + " element list. (original: " + this.crewRotationPool.Count.ToString () + ")");
+				//return this._crewRotationPool;
 			}
 		}
 
-		private static RRScenario _instance;
 
-		public IEnumerable<ProtoCrewMember> availableRoster = HighLogic.CurrentGame.CrewRoster.Kerbals(ProtoCrewMember.KerbalType.Crew, ProtoCrewMember.RosterStatus.Available);
-		public List<ProtoCrewMember> crewRotationPool = new List<ProtoCrewMember>();
+
 		public double CRPTimeStamp;
 
 		bool scenarioInitialized;
@@ -50,6 +55,7 @@ namespace RealRoster
 			GameEvents.onKerbalRemoved.Add(RemoveKerbal);
 			GameEvents.onKerbalTypeChange.Add(KerbalTypeChanged);
 			GameEvents.onKerbalStatusChange.Add(KerbalStatusChanged);
+			RRScenario.Instance = this;
 		}
 
 		public void OnStart()
@@ -124,12 +130,10 @@ namespace RealRoster
 			if (crewRotationPool.Count == 0)
 				return null;
 			ProtoCrewMember candidate;
-			candidate = crewRotationPool.FirstOrDefault(kerbal => !rrSettings.blackList.Contains (kerbal.name));
+			candidate = crewRotationPool.FirstOrDefault();
 
 			return candidate;
 		}
-
-
 		
 		public override void OnSave(ConfigNode node)
 		{
@@ -185,17 +189,33 @@ namespace RealRoster
 			}
 			else if (node.HasNode ("CREW_ROTATION_NODE"))
 			{
+				Debug.Log ("Found CREW_ROTATION_NODE");
 				ConfigNode crewRotationNode = node.GetNode ("CREW_ROTATION_NODE");
 				if (crewRotationNode.HasValue ("timestamp"))
 					double.TryParse (crewRotationNode.GetValue ("timestamp"), out loadedCRPTimeStamp);
 				foreach (string kerbalName in crewRotationNode.GetValues("kerbal"))
 				{
-					ProtoCrewMember candidate = availableRoster.FirstOrDefault(kerbal => kerbal.name == kerbalName && kerbal.rosterStatus == ProtoCrewMember.RosterStatus.Available);
+					ProtoCrewMember candidate = HighLogic.CurrentGame.CrewRoster.Kerbals(ProtoCrewMember.KerbalType.Crew, ProtoCrewMember.RosterStatus.Available).FirstOrDefault(kerbal => kerbal.name == kerbalName);
 					if ((object)candidate != null && !loadedCrewRotationPool.Contains (candidate))
+					{
 						loadedCrewRotationPool.Add (candidate);
+						Debug.Log ("Adding Kerbal " + candidate.name + " to Crew Rotation Pool buffer");
+					}
 				}
-				crewRotationPool = loadedCrewRotationPool;
+				if (loadedCrewRotationPool.Count != roster.Count ())
+				{
+					foreach(ProtoCrewMember candidate2 in roster)
+					{
+						if (!loadedCrewRotationPool.Contains (candidate2))
+						{
+							// Failsafe in case Kerbals go awol from list. Shouldn't happen except during development of this code
+							loadedCrewRotationPool.Add (candidate2);
+						}
+					}
+				}
+				this.crewRotationPool = loadedCrewRotationPool;
 				CRPTimeStamp = loadedCRPTimeStamp;
+				Debug.Log ("crewRotationPool count = " + this.crewRotationPool.Count().ToString ());
 			}
 		}
 	}
