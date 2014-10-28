@@ -215,14 +215,7 @@ namespace RealRoster
                 }
             }
 
-            while (roster.Count < capacity)
-            {
-                List<ProtoCrewMember> applicants = HighLogic.CurrentGame.CrewRoster.Kerbals(ProtoCrewMember.KerbalType.Applicant, ProtoCrewMember.RosterStatus.Assigned).ToList();
-                ProtoCrewMember newKerb = applicants[UnityEngine.Random.Range(0, (applicants.Count - 1))];
-                HighLogic.CurrentGame.CrewRoster.HireApplicant(newKerb, 0);
-                DebugMessage(newKerb.name + " has been hired.");
-                roster.Add(newKerb);
-            }
+            capacity = (capacity < roster.Count) ? capacity : roster.Count;
 
             for (int idx = 0; idx < capacity; idx++)
             {
