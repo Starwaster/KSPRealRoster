@@ -200,10 +200,22 @@ namespace RealRoster
         }
 
         // Generates a random crew for the pod, based on settings.
+		// If randomization is off then a sorted roster list is used with Kerbals selected in order. -Starwaster
         ProtoCrewMember[] getCrewForPod(int capacity)
         {
             ProtoCrewMember[] crew = new ProtoCrewMember[capacity];
-            List<ProtoCrewMember> roster = HighLogic.CurrentGame.CrewRoster.Kerbals(ProtoCrewMember.KerbalType.Crew, ProtoCrewMember.RosterStatus.Available).ToList();
+			List<ProtoCrewMember> roster = new List<ProtoCrewMember>();
+
+			if (settings.crewRandomization)
+				roster = HighLogic.CurrentGame.CrewRoster.Kerbals(ProtoCrewMember.KerbalType.Crew, ProtoCrewMember.RosterStatus.Available).ToList();
+			else
+			{
+				roster = RotationScenario.Instance.CrewRotationPool;
+				Debug.Log ("RRScenario.Instance.crewRotationRoster length = " + RotationScenario.Instance.CrewRotationPool.Count.ToString ());
+			}
+			Debug.Log ("Got roster, length = " + roster.Count);
+			foreach (ProtoCrewMember _kerbal in roster)
+				Debug.Log ("            " + _kerbal.name);
 
             foreach (ProtoCrewMember kerbal in roster.ToList())
             {
@@ -212,6 +224,7 @@ namespace RealRoster
                     roster.Remove(kerbal);
                 }
             }
+			Debug.Log ("Processed black list");
 
             // Use either the size of the roster or the capacity of the module, whichever is lower.
             capacity = (capacity < roster.Count) ? capacity : roster.Count;
@@ -224,10 +237,15 @@ namespace RealRoster
                 }
                 else
                 {
-                    crew[idx] = roster.First();
+                    crew[idx] = roster.FirstOrDefault();
+					if ((object)crew[idx] == null)
+						Debug.Log ("Roster returned null result");
                 }
                 roster.Remove(crew[idx]);
-            }
+				Debug.Log ("Roster length = " + roster.Count);
+				foreach (ProtoCrewMember _kerbal in roster)
+					Debug.Log ("- " + _kerbal.name);
+			}
 
             return crew;
         }

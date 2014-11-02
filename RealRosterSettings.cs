@@ -30,6 +30,9 @@ namespace RealRoster
         public bool crewRandomization;
         [Persistent]
         public List<String> blackList;
+		//[Persistent]
+		//public bool useCrewRotation;
+
         //[Persistent]
         public bool eventRegistered;
 

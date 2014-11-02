@@ -46,6 +46,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="RotationScenario.cs" />
     <Compile Include="ToolbarManager.cs" />
     <Compile Include="RealRosterGUI.cs" />
     <Compile Include="RealRoster.cs" />
