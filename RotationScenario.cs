@@ -13,9 +13,9 @@ namespace RealRoster
 		GameScenes.SPH,
 		GameScenes.TRACKSTATION
 	})]
-	public class RRScenario : ScenarioModule
+	public class RotationScenario : ScenarioModule
 	{
-		public static RRScenario Instance;
+		public static RotationScenario Instance;
 		
 		private List<ProtoCrewMember> crewRotationPool;
 
@@ -40,9 +40,9 @@ namespace RealRoster
 
 		bool scenarioInitialized;
 
-		Settings rrSettings = Settings.Instance;
+		RealRosterSettings rrSettings = RealRosterSettings.Instance;
 
-		public RRScenario ()
+		public RotationScenario ()
 		{
 			scenarioInitialized = false;
 			CRPTimeStamp = 0.0;
@@ -55,7 +55,7 @@ namespace RealRoster
 			GameEvents.onKerbalRemoved.Add(RemoveKerbal);
 			GameEvents.onKerbalTypeChange.Add(KerbalTypeChanged);
 			GameEvents.onKerbalStatusChange.Add(KerbalStatusChanged);
-			RRScenario.Instance = this;
+			RotationScenario.Instance = this;
 		}
 
 		public void OnStart()

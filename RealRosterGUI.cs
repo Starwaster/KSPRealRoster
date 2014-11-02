@@ -6,9 +6,9 @@ using UnityEngine;
 
 namespace RealRoster
 {
-    class rrGUI
+    class RealRosterGUI
     {
-        Settings rrSettings = Settings.Instance;
+        RealRosterSettings rrSettings = RealRosterSettings.Instance;
         private IButton button;
         public static readonly String RESOURCE_PATH = "Enneract/RealRoster/Resources/";
 
