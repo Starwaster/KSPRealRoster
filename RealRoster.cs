@@ -7,68 +7,17 @@ using UnityEngine;
 
 namespace RealRoster
 {
-    [KSPAddon(KSPAddon.Startup.EditorAny, false)]
-    public class RealRoster : MonoBehaviour
+    //[KSPAddon(KSPAddon.Startup.EditorAny, false)]
+    class EditorBehaviour : MonoBehaviour
     {
-        public static readonly string TAG = "Base";
-
-        // Instance of this singleton
-        public static RealRoster instance = null;
-
-        // Reference to settings scenario
-
-        // List of registered CrewSelectionModes
-        public List<ICrewSelectionMode> modes = new List<ICrewSelectionMode>();
-
-        public void Awake()
-        {
-            CommonLogic.DebugMessage("Awake()");
-            instance = this;
-        }
-
-        public void Start()
-        {
-            CommonLogic.DebugMessage("Start()");
-
-            if (HighLogic.LoadedSceneIsEditor)
-            {
-                GameEvents.onEditorShipModified.Add(onEditorShipModified);
-                CommonLogic.DebugMessage("Successfully registered onEditorShipModified");
-            }
-        }
-        
-        // Occurs on every frame
-        public void Update()
-        {
-            
-        }
-
-        public void OnDestroy()
-        {
-            CommonLogic.DebugMessage("OnDestroy()");
-            instance = null;
-            GameEvents.onEditorShipModified.Remove(onEditorShipModified);
-        }
-
-        // Occurs every time any part is 'clicked' in the editor.
-        void onEditorShipModified(ShipConstruct ship)
-        {
-            
-        }
-
-        public void registerCrewSelectionMode(ICrewSelectionMode mode)
-        {
-            if (!modes.Contains(mode))
-            {
-                CommonLogic.DebugMessage("Registering CrewSelectionMode: " + mode.ToString());
-                modes.Add(mode);
-            }
-        }
+        private static readonly string TAG = "EditorBehaviour";       
     }
 
-    [KSPAddon(KSPAddon.Startup.SpaceCentre, false)]
-    class SpaceCenterModule : MonoBehaviour
+    //[KSPAddon(KSPAddon.Startup.SpaceCentre, false)]
+    class SpaceCenterBehaviour : MonoBehaviour
     {
+        private static readonly string TAG = "SpaceCenterBehaviour";
+
         public void Awake()
         {
             GameEvents.onGUILaunchScreenVesselSelected.Add(onVesselSelected);
@@ -99,8 +48,7 @@ namespace RealRoster
     public static class CommonLogic
     {
         // If this value is true, print debug messages
-        private static bool debug = (true && CommonLogic.globalDebug);
-        public static bool globalDebug = true;
+        private static bool debug = true;
 
         // Conditionally prints a debug message.
         public static void DebugMessage(string tag, string message)

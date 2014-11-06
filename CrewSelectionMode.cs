@@ -8,15 +8,16 @@ using UnityEngine;
 namespace RealRoster
 {
     [KSPAddon(KSPAddon.Startup.MainMenu, true)]
-    internal class CrewSelectionModeLoader : MonoBehaviour
+    class CrewSelectionModeLoader : MonoBehaviour
     {
         private static readonly string TAG = "CrewSelectionModeLoader";
 
         public static CrewSelectionModeLoader Instance = null;
         public List<ICrewSelectionMode> LoadedModes;
 
-        public void Awake() 
+        void Awake() 
         {
+            CommonLogic.DebugMessage(TAG, "Awake...");
             DontDestroyOnLoad(this);
             LoadedModes = new List<ICrewSelectionMode>();
             Instance = this;
@@ -28,16 +29,15 @@ namespace RealRoster
                 if (interfaces.Contains(typeof(ICrewSelectionMode)) && type.IsClass)
                 {
                     CommonLogic.DebugMessage(TAG, "CrewSelectionModeLoader found Mode called: " + type.Name);
-                    object instance = Activator.CreateInstance(type);
-
-                    LoadedModes.Add((ICrewSelectionMode)instance);
+                    object obj = Activator.CreateInstance(type);
+                    LoadedModes.Add((ICrewSelectionMode)obj);
                 }
             }
         }
     }
 
 
-    public interface ICrewSelectionMode
+    interface ICrewSelectionMode
     {
         string CleanName { get; }
     }
