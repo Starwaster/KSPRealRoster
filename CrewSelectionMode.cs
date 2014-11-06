@@ -10,6 +10,8 @@ namespace RealRoster
     [KSPAddon(KSPAddon.Startup.MainMenu, true)]
     internal class CrewSelectionModeLoader : MonoBehaviour
     {
+        private static readonly string TAG = "CrewSelectionModeLoader";
+
         public static CrewSelectionModeLoader Instance = null;
         public List<ICrewSelectionMode> LoadedModes;
 
@@ -25,7 +27,7 @@ namespace RealRoster
                 Type[] interfaces = type.GetInterfaces();
                 if (interfaces.Contains(typeof(ICrewSelectionMode)) && type.IsClass)
                 {
-                    Debug.Log("CrewSelectionModeLoader Found Mode at: " + type.FullName);
+                    CommonLogic.DebugMessage(TAG, "CrewSelectionModeLoader found Mode called: " + type.Name);
                     object instance = Activator.CreateInstance(type);
 
                     LoadedModes.Add((ICrewSelectionMode)instance);
@@ -40,23 +42,27 @@ namespace RealRoster
         string CleanName { get; }
     }
 
-    class NullSelectionModule : ICrewSelectionMode
+    class NullSelectionMode : ICrewSelectionMode
     {
+        private static readonly string TAG = "NullSelectionMode";
+
         public string CleanName { get { return "No Crew"; } }
 
-        public NullSelectionModule()
+        public NullSelectionMode()
         {
-            Debug.Log("Loading NullSelectionModule");
+            CommonLogic.DebugMessage(TAG, "Loading NullSelectionMode");
         }
     }
 
     class RandomSelectionModule : ICrewSelectionMode
     {
+        private static readonly string TAG = "RandomSelectionMode";
+
         public string CleanName { get { return "Randomize Crew"; } }
 
         public RandomSelectionModule()
         {
-            Debug.Log("Loading RandomSelectionModule");
+            CommonLogic.DebugMessage(TAG, "Loading RandomSelectionMode");
         }
     }
 }

@@ -10,7 +10,7 @@ namespace RealRoster
     class Settings : ScenarioModule
     {
         public static readonly String RESOURCE_PATH = "Enneract/RealRoster/Resources/";
-        public static readonly string TAG = "Settings";
+        private static readonly string TAG = "Settings";
 
         public bool settingWindowActive;
 

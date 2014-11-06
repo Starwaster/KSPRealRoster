@@ -103,11 +103,11 @@ namespace RealRoster
         public static bool globalDebug = true;
 
         // Conditionally prints a debug message.
-        public static void DebugMessage(string message)
+        public static void DebugMessage(string tag, string message)
         {
             if (debug)
             {
-                UnityEngine.Debug.Log("RealRoster: " + RealRoster.TAG + ": " + message);
+                UnityEngine.Debug.Log("RealRoster: " + tag + ": " + message);
             }
         }
     }
