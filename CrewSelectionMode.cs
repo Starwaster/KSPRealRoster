@@ -2,34 +2,61 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Reflection;
 using UnityEngine;
 
 namespace RealRoster
 {
+    [KSPAddon(KSPAddon.Startup.MainMenu, true)]
+    internal class CrewSelectionModeLoader : MonoBehaviour
+    {
+        public static CrewSelectionModeLoader Instance = null;
+        public List<ICrewSelectionMode> LoadedModes;
+
+        public void Awake() 
+        {
+            DontDestroyOnLoad(this);
+            LoadedModes = new List<ICrewSelectionMode>();
+            Instance = this;
+
+            // examine our assembly for loaded types
+            foreach (var type in System.Reflection.Assembly.GetExecutingAssembly().GetTypes())
+            {
+                Type[] interfaces = type.GetInterfaces();
+                if (interfaces.Contains(typeof(ICrewSelectionMode)) && type.IsClass)
+                {
+                    Debug.Log("CrewSelectionModeLoader Found Mode at: " + type.FullName);
+                    object instance = Activator.CreateInstance(type);
+
+                    LoadedModes.Add((ICrewSelectionMode)instance);
+                }
+            }
+        }
+    }
+
+
     public interface ICrewSelectionMode
     {
         string CleanName { get; }
     }
 
-    [KSPAddon(KSPAddon.Startup.EditorAny, false)]
-    class NullSelectionModule : MonoBehaviour, ICrewSelectionMode
+    class NullSelectionModule : ICrewSelectionMode
     {
         public string CleanName { get { return "No Crew"; } }
 
-        public void Start()
+        public NullSelectionModule()
         {
-            RealRoster.instance.registerCrewSelectionMode(this);
+            Debug.Log("Loading NullSelectionModule");
         }
     }
 
-    [KSPAddon(KSPAddon.Startup.EditorAny, false)]
-    class RandomSelectionModule : MonoBehaviour, ICrewSelectionMode
+    class RandomSelectionModule : ICrewSelectionMode
     {
         public string CleanName { get { return "Randomize Crew"; } }
 
-        public void Start()
+        public RandomSelectionModule()
         {
-            RealRoster.instance.registerCrewSelectionMode(this);
+            Debug.Log("Loading RandomSelectionModule");
         }
     }
 }
