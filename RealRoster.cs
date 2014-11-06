@@ -7,7 +7,6 @@ using UnityEngine;
 
 namespace RealRoster
 {
-    // Toolbar should be available via KSC, hence the 'everyscene'
     [KSPAddon(KSPAddon.Startup.EditorAny, false)]
     public class RealRoster : MonoBehaviour
     {
@@ -92,8 +91,22 @@ namespace RealRoster
         public bool allowCustomCrewing = true;
         [KSPField(isPersistant = true)]
         public string selectionModeName = RealRoster.instance.modes.FirstOrDefault().CleanName;
-        [KSPField(isPersistant = true)]
-        public List<string> crewBlackList = new List<string>();
+
+        private List<string> crewBlackList = new List<string>();
+        public List<string> getBlackList
+        {
+            get { return new List<string>(crewBlackList); }
+        }
+
+        public void addBlackList(string kerbal)
+        {
+            crewBlackList.Add(kerbal);
+        }
+
+        public void removeBlackList(string kerbal)
+        {
+            crewBlackList.Remove(kerbal);
+        }
 
         // Constructor
         public void Start()
@@ -104,6 +117,32 @@ namespace RealRoster
         public void onDestroy()
         {
             instance = null;
+        }
+
+        public override void OnSave(ConfigNode node)
+        {
+            base.OnSave(node);
+
+            ConfigNode blackListNode = new ConfigNode("BLACKLIST");
+            foreach (string kerbal in crewBlackList)
+            {
+                blackListNode.AddValue("kerbal", kerbal);
+            }
+
+            node.AddNode(blackListNode);
+        }
+
+        public override void OnLoad(ConfigNode node)
+        {
+            base.OnLoad(node);
+
+            if (node.HasNode("BLACKLIST"))
+            {
+                ConfigNode blacklistNode = node.GetNode("BLACKLIST");
+                foreach (string kerbal in blacklistNode.GetValues("kerbal")) {
+                    crewBlackList.Add(kerbal);
+                }
+            }
         }
     }
 
@@ -119,8 +158,7 @@ namespace RealRoster
 
         protected Rect windowPos = new Rect(Screen.width / 4, Screen.height / 4, 10f, 10f);
         public bool settingWindowActive = false;
-        private GUIStyle _windowStyle, _labelStyle, _buttonStyle, _toggleStyle, _scrollStyle, _hscrollBarStyle, _vscrollBarStyle;
-        public Vector2 scrollPosition, scrollPosition2;
+        private GUIStyle _windowStyle, _labelStyle, _buttonStyle, _toggleStyle, _scrollStyle, _hscrollBarStyle, _vscrollBarStyle, _thumbStyle;
 
         public void Awake()
         {
@@ -137,6 +175,7 @@ namespace RealRoster
             _scrollStyle = new GUIStyle(HighLogic.Skin.scrollView);
             _vscrollBarStyle = new GUIStyle(HighLogic.Skin.verticalScrollbar);
             _hscrollBarStyle = new GUIStyle(HighLogic.Skin.horizontalScrollbar);
+            _thumbStyle = new GUIStyle(HighLogic.Skin.verticalScrollbarThumb); 
 
 
             RenderingManager.AddToPostDrawQueue(3, new Callback(drawGUI));
@@ -169,50 +208,39 @@ namespace RealRoster
 
         private void mainGUI(int windowID)
         {
-
-            GUI.skin.verticalScrollbarThumb = HighLogic.Skin.verticalScrollbarThumb;
-            GUILayout.BeginVertical();
-
-            GUILayout.BeginHorizontal(GUILayout.ExpandWidth(false));
+            // Allow Custom Crewing
             settings.allowCustomCrewing = GUILayout.Toggle(settings.allowCustomCrewing, "Custom Default Crewing", _toggleStyle);
-            GUILayout.EndHorizontal();
 
-            GUILayout.BeginHorizontal(GUILayout.ExpandWidth(false));
+            // Blacklist Label
             GUILayout.Label("Blacklist: (Click to Remove)", _labelStyle);
-            GUILayout.EndHorizontal();
 
-            scrollPosition = GUILayout.BeginScrollView(scrollPosition, false, true, _hscrollBarStyle, _vscrollBarStyle, _scrollStyle);
-
-            foreach (String kerbal in settings.crewBlackList)
+            // Build list of crew currently on blacklist.
+            foreach (String kerbal in settings.getBlackList)
             {
-                GUILayout.BeginHorizontal(GUILayout.ExpandWidth(false));
                 if (GUILayout.Button(kerbal))
                 {
-                    settings.crewBlackList.Remove(kerbal);
-
+                    settings.removeBlackList(kerbal);
                 }
-                GUILayout.EndHorizontal();
-
             }
          
-            GUILayout.EndScrollView();
 
             // Iterate through all Kerbals (including those not on a mission).
             List<ProtoCrewMember> roster = HighLogic.CurrentGame.CrewRoster.Kerbals(ProtoCrewMember.KerbalType.Crew, ProtoCrewMember.RosterStatus.Available).ToList();
+
+            // Crew pool label
             GUILayout.Label("Crew: (Click to add to Blacklist)", _labelStyle);
-            scrollPosition2 = GUILayout.BeginScrollView(scrollPosition2, GUILayout.ExpandWidth(true), GUILayout.Height(100));
+
             foreach (ProtoCrewMember kerbal in roster)
             {
-                if (!settings.crewBlackList.Contains(kerbal.name))
+                if (!settings.getBlackList.Contains(kerbal.name))
                 {
                     if (GUILayout.Button(kerbal.name))
                     {
-                        settings.crewBlackList.Add(kerbal.name);
+                        settings.addBlackList(kerbal.name);
                     }
                 }
             }
-            GUILayout.EndScrollView();
-            GUILayout.EndVertical();
+
             GUI.DragWindow();
         }
 
