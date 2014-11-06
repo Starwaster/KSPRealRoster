@@ -6,15 +6,37 @@ using UnityEngine;
 
 namespace RealRoster
 {
+    // This gets loaded after KSPAddons are
     [KSPScenario(ScenarioCreationOptions.AddToAllGames, new GameScenes[] { GameScenes.EDITOR, GameScenes.SPACECENTER })]
     class SettingsModule : ScenarioModule
     {
+        // Statics
         private static readonly string RESOURCE_PATH = "Enneract/RealRoster/Resources/";
+        private static readonly string ICON_ON = RESOURCE_PATH + "IconOn";
+        private static readonly string ICON_OFF = RESOURCE_PATH + "IconOff";
         private static readonly string TAG = "SettingsModule";
+        private static readonly string CAPTION = "RealRoster";
+
+        //Automatic Persistent Fields
+        [KSPField(isPersistant = true)]
+        public bool AllowCustomCrew;
+        [KSPField(isPersistant = true)]
+        public string CrewSelectionMode;
+
+        //Manual Persistent Fields
+        public List<string> BlackList { get { return new List<string>(privateBlackList); } }
+        private List<string> privateBlackList;
+
+        //GUI Fields
+        private IButton SettingsButton;
+        private bool SettingsWindowVisible;
+        
         
         void Awake()
         {
             CommonLogic.DebugMessage(TAG, "Awake...");
+
+            SettingsWindowVisible = false;
         }
 
         void Start()
@@ -23,102 +45,55 @@ namespace RealRoster
             if (ToolbarManager.ToolbarAvailable)
             {
                 CommonLogic.DebugMessage(TAG, "Toolbar is available.");
-            }
-        }
 
-        private void mainGUI(int windowID)
-        {
-            // Allow Custom Crewing
-            CommonLogic.DebugMessage(TAG, "Generating Toggle 'Custom Crewing'");
-            AllowCustomCrewing = GUILayout.Toggle(AllowCustomCrewing, "Custom Crewing", _toggleStyle);
-
-            // Selection Mode Label
-            CommonLogic.DebugMessage(TAG, "Generating Label 'Custom Crew Selection Mode'");
-            GUILayout.Label("Custom Crew Selection Mode", _labelStyle);
-            CommonLogic.DebugMessage(TAG, "Generating Text for 'Custom Crew Selection Mode'");
-            foreach (var item in CrewSelectionModeLoader.Instance.LoadedModes.Select((value, i) => new { i, value }))
-            {
-                if (modeText[item.i].Equals(SelectionModeName, StringComparison.Ordinal))
+                // This should be the last statement of this method.
+                // Do not initialize the Button until everything else is set up.
+                SettingsButton = ToolbarManager.Instance.add(CAPTION, CAPTION);
+                if (SettingsButton != null)
                 {
-                    selectedMode = item.i; 
-                }
-            }
+                    SettingsButton.TexturePath = RESOURCE_PATH + "IconOff";
+                    SettingsButton.ToolTip = CAPTION;
 
-            CommonLogic.DebugMessage(TAG, "Generating SelectionGrid 'Custom Crew Selection Mode'");
-            selectedMode = GUILayout.SelectionGrid(selectedMode, modeText, 1);
-
-            // Blacklist Label
-            CommonLogic.DebugMessage(TAG, "Generating Label 'BlackList'");
-            GUILayout.Label("Blacklist: (Click to Remove)", _labelStyle);
-
-            // Build list of crew currently on blacklist.
-            CommonLogic.DebugMessage(TAG, "Generating Buttons 'BlackList'");
-            foreach (String kerbal in BlackList)
-            {
-                if (GUILayout.Button(kerbal))
-                {
-                    BlackList.Remove(kerbal);
-                }
-            }
-
-            // Iterate through all Kerbals (including those not on a mission).
-            List<ProtoCrewMember> roster = HighLogic.CurrentGame.CrewRoster.Kerbals(ProtoCrewMember.KerbalType.Crew, ProtoCrewMember.RosterStatus.Available).ToList();
-
-            // Crew pool label
-            GUILayout.Label("Crew: (Click to add to Blacklist)", _labelStyle);
-
-            CommonLogic.DebugMessage(TAG, "Generating Buttons 'Roster'");
-            foreach (ProtoCrewMember kerbal in roster)
-            {
-                if (!BlackList.Contains(kerbal.name))
-                {
-                    if (GUILayout.Button(kerbal.name))
+                    SettingsButton.OnClick += (e) =>
                     {
-                        BlackList.Add(kerbal.name);
-                    }
+                        SettingsButton.TexturePath = SettingsWindowVisible ? ICON_ON : ICON_OFF;
+                        SettingsWindowVisible = !SettingsWindowVisible;
+                    };
+
+                    SettingsButton.Visibility = new GameScenesVisibility(GameScenes.EDITOR, GameScenes.SPH, GameScenes.SPACECENTER);
                 }
-            }
 
-            GUI.DragWindow();
-        }
-
-        private void drawGUI()
-        {
-            if (settingWindowActive)
-            {
-                windowPos = GUILayout.Window(0, windowPos, mainGUI, "RealRoster Settings", _windowStyle);
             }
         }
 
-        public override void OnSave(ConfigNode node)
+        override void OnSave(ConfigNode config)
         {
-            
-            base.OnSave(node);
+            CommonLogic.DebugMessage(TAG, "Saving...");
+            base.OnSave(config);
 
-            ConfigNode blackListNode = new ConfigNode("BLACKLIST");
-            foreach (string kerbal in BlackList)
+            ConfigNode blacklistNode = new ConfigNode("BLACKLIST_NODE");
+            foreach (string name in BlackList)
             {
-                blackListNode.AddValue("kerbal", kerbal);
+                CommonLogic.DebugMessage(TAG, "Writing '" + name + "' to blacklist node");
+                blacklistNode.AddValue("name", name);
             }
-
-            node.AddNode(blackListNode);
+            config.AddNode(blacklistNode);
         }
 
-        public override void OnLoad(ConfigNode node)
+        override void OnLoad(ConfigNode config)
         {
-            
-            AllowCustomCrewing = true;
-            SelectionModeName = "No Crew";
-            BlackList = new List<string>();
-
-            base.OnLoad(node);
-
-            if (node.HasNode("BLACKLIST"))
+            CommonLogic.DebugMessage(TAG, "Loading...");
+            base.OnLoad(config);
+            if (config.HasNode("BLACKLIST_NODE"))
             {
-                ConfigNode blacklistNode = node.GetNode("BLACKLIST");
-                foreach (string kerbal in blacklistNode.GetValues("kerbal"))
+                ConfigNode blacklistNode = config.GetNode("BLACKLIST_NODE");
+                foreach(string name in blacklistNode.GetValues("name")) 
                 {
-                    BlackList.Add(kerbal);
+                    CommonLogic.DebugMessage(TAG, "Found blacklist member - " + name);
+                    if (!privateBlackList.Contains(name))
+                    {
+                        privateBlackList.Add(name);
+                    }
                 }
             }
         }

@@ -36,7 +36,6 @@ namespace RealRoster
         }
     }
 
-
     interface ICrewSelectionMode
     {
         string CleanName { get; }
