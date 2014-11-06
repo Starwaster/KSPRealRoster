@@ -13,6 +13,7 @@ namespace RealRoster
 		GameScenes.SPH,
 		GameScenes.TRACKSTATION
 	})]
+
 	public class RotationScenario : ScenarioModule
 	{
 		public static RotationScenario Instance;
@@ -27,10 +28,8 @@ namespace RealRoster
 		{
 			get
 			{
+                //RealRoster.DebugMessage("RealRoster.RRScenario.CrewRotationPool() sending " + this.crewRotationPool.Count.ToString() + " element list. (original: " + this.crewRotationPool.Count.ToString() + ")");
 				return new List<ProtoCrewMember>(crewRotationPool);
-				//this._crewRotationPool = new List<ProtoCrewMember>(crewRotationPool);
-				Debug.Log ("RealRoster.RRScenario.CrewRotationPool() sending " + this.crewRotationPool.Count.ToString() + " element list. (original: " + this.crewRotationPool.Count.ToString () + ")");
-				//return this._crewRotationPool;
 			}
 		}
 
@@ -50,7 +49,7 @@ namespace RealRoster
 		
 		public override void OnAwake ()
 		{
-			Debug.Log ("RealRoster.RRScenario.OnAwake()");
+			//RealRoster.DebugMessage ("RealRoster.RRScenario.OnAwake()");
 			GameEvents.onKerbalAdded.Add(AddKerbal);
 			GameEvents.onKerbalRemoved.Add(RemoveKerbal);
 			GameEvents.onKerbalTypeChange.Add(KerbalTypeChanged);
@@ -60,13 +59,13 @@ namespace RealRoster
 
 		public void OnStart()
 		{
-			Debug.Log ("RealRoster.RRScenario.RRScenario.OnStart()");
+			//RealRoster.DebugMessage ("RealRoster.RRScenario.RRScenario.OnStart()");
 		}
 
 
 		private void AddKerbal(ProtoCrewMember kerbal)
 		{
-			Debug.Log ("RealRoster.RRScenario.GameEvent.onKerbalAdded: kerbal = " + kerbal.name);
+			//RealRoster.DebugMessage ("RealRoster.RRScenario.GameEvent.onKerbalAdded: kerbal = " + kerbal.name);
 			if ((object)kerbal != null && kerbal.name != "")
 			{
 				if (kerbal.type == ProtoCrewMember.KerbalType.Crew && kerbal.rosterStatus == ProtoCrewMember.RosterStatus.Available)
@@ -79,7 +78,7 @@ namespace RealRoster
 		
 		private void RemoveKerbal(ProtoCrewMember kerbal)
 		{
-			Debug.Log ("RealRoster.RRScenario.GameEvent.onKerbalRemoved: kerbal = " + kerbal.name);
+			//RealRoster.DebugMessage ("RealRoster.RRScenario.GameEvent.onKerbalRemoved: kerbal = " + kerbal.name);
 			if ((object)kerbal != null && kerbal.type == ProtoCrewMember.KerbalType.Crew)
 			{
 				crewRotationPool.Remove (kerbal);
@@ -91,7 +90,7 @@ namespace RealRoster
 		{
 			if ((object)kerbal != null && kerbal.name != "" && oldtype != newtype)
 			{
-				Debug.Log ("RealRoster.RRScenario.GameEvent.onKerbalTypeChanged: kerbal = " + kerbal.name + ", oldtype = " + oldtype.ToString () + ", newtype = " + newtype.ToString ());
+				//RealRoster.DebugMessage ("RealRoster.RRScenario.GameEvent.onKerbalTypeChanged: kerbal = " + kerbal.name + ", oldtype = " + oldtype.ToString () + ", newtype = " + newtype.ToString ());
 				if (newtype != ProtoCrewMember.KerbalType.Crew && crewRotationPool.Contains (kerbal))
 				{
 					crewRotationPool.Remove (kerbal);
@@ -110,7 +109,7 @@ namespace RealRoster
 		{
 			if ((object)kerbal != null && kerbal.name != "" && oldstatus != newstatus)
 			{
-				Debug.Log ("RealRoster.RRScenario.GameEvent.onKerbalStatusChanged: kerbal = " + kerbal.name + ", oldstatus = " + oldstatus.ToString () + ", newstatus = " + newstatus.ToString ());
+				//RealRoster.DebugMessage ("RealRoster.RRScenario.GameEvent.onKerbalStatusChanged: kerbal = " + kerbal.name + ", oldstatus = " + oldstatus.ToString () + ", newstatus = " + newstatus.ToString ());
 				if (newstatus != ProtoCrewMember.RosterStatus.Available && crewRotationPool.Contains (kerbal))
 				{
 					crewRotationPool.Remove (kerbal);
@@ -137,14 +136,14 @@ namespace RealRoster
 		
 		public override void OnSave(ConfigNode node)
 		{
-			Debug.Log ("RealRoster: RRScenario.OnSave()");
+			//RealRoster.DebugMessage ("RealRoster: RRScenario.OnSave()");
 
 			// Don't bother declaring that we're initialized if we don't even have a valid crew roster yet.
 			if ((object)crewRotationPool == null)
-				Debug.Log ("RealRoster.RRScenario.OnSave(): null crewRotationPool error");
+				//RealRoster.DebugMessage ("RealRoster.RRScenario.OnSave(): null crewRotationPool error");
 			if ((object)node == null)
 			{
-				Debug.Log ("RealRoster.RRScenario.OnSave(): null ConfigNode node - ABORTING");
+				//RealRoster.DebugMessage ("RealRoster.RRScenario.OnSave(): null ConfigNode node - ABORTING");
 				return;
 			}
 			if (crewRotationPool.Count > 0)
@@ -153,27 +152,27 @@ namespace RealRoster
 				CRPTimeStamp = Planetarium.GetUniversalTime();
 			}
 
-			Debug.Log ("RealRoster.RRScenario.OnSave(): crewRotationPool.Count = " + crewRotationPool.Count.ToString ());
+			//RealRoster.DebugMessage ("RealRoster.RRScenario.OnSave(): crewRotationPool.Count = " + crewRotationPool.Count.ToString ());
 			ConfigNode crewRotationNode = new ConfigNode("CREW_ROTATION_NODE");
 			node.AddValue ("scenarioInitialized", scenarioInitialized);
 			if ((object)crewRotationNode == null)
 			{
-				Debug.Log ("RealRoster.RRScenario.OnSave(): ERROR. CREW_ROTATION_NODE is null!");
+				//RealRoster.DebugMessage ("RealRoster.RRScenario.OnSave(): ERROR. CREW_ROTATION_NODE is null!");
 			}
 			crewRotationNode.AddValue ("timestamp", CRPTimeStamp);
-			Debug.Log ("RealRoster.RRScenario.OnSave(): saving crewRotationPool data to CREW_ROTATION_NODE, timestamp: " + CRPTimeStamp.ToString ());
+			//RealRoster.DebugMessage ("RealRoster.RRScenario.OnSave(): saving crewRotationPool data to CREW_ROTATION_NODE, timestamp: " + CRPTimeStamp.ToString ());
 			foreach (ProtoCrewMember kerbal in crewRotationPool)
 			{
 				crewRotationNode.AddValue("kerbal", kerbal.name);
-				Debug.Log ("RealRoster.RRScenario.OnSave(): Added " + kerbal.name + " to CREW_ROTATION_NODE");
+				//RealRoster.DebugMessage ("RealRoster.RRScenario.OnSave(): Added " + kerbal.name + " to CREW_ROTATION_NODE");
 			}
-			Debug.Log ("RealRoster.RRScenario.OnSave(): Saving CREW_ROTATION_NODE to savegame.");
+			//RealRoster.DebugMessage ("RealRoster.RRScenario.OnSave(): Saving CREW_ROTATION_NODE to savegame.");
 			node.AddNode (crewRotationNode);
 		}
 
 		public override void OnLoad(ConfigNode node)
 		{
-			Debug.Log ("RealRoster: RRScenario.OnLoad()");
+			//RealRoster.DebugMessage ("RealRoster: RRScenario.OnLoad()");
 
 			double loadedCRPTimeStamp = 0.0;
 
@@ -189,7 +188,7 @@ namespace RealRoster
 			}
 			else if (node.HasNode ("CREW_ROTATION_NODE"))
 			{
-				Debug.Log ("Found CREW_ROTATION_NODE");
+				//RealRoster.DebugMessage ("Found CREW_ROTATION_NODE");
 				ConfigNode crewRotationNode = node.GetNode ("CREW_ROTATION_NODE");
 				if (crewRotationNode.HasValue ("timestamp"))
 					double.TryParse (crewRotationNode.GetValue ("timestamp"), out loadedCRPTimeStamp);
@@ -199,7 +198,7 @@ namespace RealRoster
 					if ((object)candidate != null && !loadedCrewRotationPool.Contains (candidate))
 					{
 						loadedCrewRotationPool.Add (candidate);
-						Debug.Log ("Adding Kerbal " + candidate.name + " to Crew Rotation Pool buffer");
+						//RealRoster.DebugMessage ("Adding Kerbal " + candidate.name + " to Crew Rotation Pool buffer");
 					}
 				}
 				if (loadedCrewRotationPool.Count != roster.Count ())
@@ -215,7 +214,7 @@ namespace RealRoster
 				}
 				this.crewRotationPool = loadedCrewRotationPool;
 				CRPTimeStamp = loadedCRPTimeStamp;
-				Debug.Log ("crewRotationPool count = " + this.crewRotationPool.Count().ToString ());
+				//RealRoster.DebugMessage ("crewRotationPool count = " + this.crewRotationPool.Count().ToString ());
 			}
 		}
 	}

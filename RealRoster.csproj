@@ -46,12 +46,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="RotationScenario.cs" />
+    <Compile Include="CrewSelectionMode.cs" />
     <Compile Include="ToolbarManager.cs" />
-    <Compile Include="RealRosterGUI.cs" />
     <Compile Include="RealRoster.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RealRosterSettings.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
@@ -59,8 +57,7 @@
     </PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PostBuildEvent>
-    </PostBuildEvent>
+    <PostBuildEvent>copy /Y "$(TargetPath)" "C:\Games\Kerbal Space Program\GameData\Enneract\RealRoster\Plugins\$(TargetFileName)"</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

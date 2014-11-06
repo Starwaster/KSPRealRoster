@@ -8,7 +8,7 @@ namespace RealRoster
 {
     class RealRosterGUI
     {
-        RealRosterSettings settings = RealRosterSettings.Instance;
+        RealRosterSettings settings = RealRosterSettings.instance;
         private IButton button;
         public static readonly String RESOURCE_PATH = "Enneract/RealRoster/Resources/";
 
@@ -72,10 +72,7 @@ namespace RealRoster
             GUILayout.BeginVertical();
 
             GUILayout.BeginHorizontal(GUILayout.ExpandWidth(false));
-            settings.crewAssignment = GUILayout.Toggle(settings.crewAssignment, "Auto Assign Crew", _toggleStyle);
-            GUILayout.EndHorizontal();
-            GUILayout.BeginHorizontal(GUILayout.ExpandWidth(false));
-            settings.crewRandomization = GUILayout.Toggle(settings.crewRandomization, "Randomize Crew", _toggleStyle);
+            settings.allowCustomCrewing = GUILayout.Toggle(settings.allowCustomCrewing, "Custom Default Crewing", _toggleStyle);
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal(GUILayout.ExpandWidth(false));
@@ -84,12 +81,12 @@ namespace RealRoster
 
             scrollPosition = GUILayout.BeginScrollView(scrollPosition, false, true, _hscrollBarStyle, _vscrollBarStyle, _scrollStyle);
 
-            foreach (String kerbal in settings.blackList)
+            foreach (String kerbal in settings.crewBlackList)
             {
                 GUILayout.BeginHorizontal(GUILayout.ExpandWidth(false));
                 if (GUILayout.Button(kerbal))
                 {
-                    settings.blackList.Remove(kerbal);
+                    settings.crewBlackList.Remove(kerbal);
 
                 }
                 GUILayout.EndHorizontal();
@@ -104,31 +101,15 @@ namespace RealRoster
             scrollPosition2 = GUILayout.BeginScrollView(scrollPosition2, GUILayout.ExpandWidth(true), GUILayout.Height(100));
             foreach (ProtoCrewMember kerbal in roster)
             {
-                if (!settings.blackList.Contains(kerbal.name))
+                if (!settings.crewBlackList.Contains(kerbal.name))
                 {
                     if (GUILayout.Button(kerbal.name))
                     {
-                        settings.blackList.Add(kerbal.name);
+                        settings.crewBlackList.Add(kerbal.name);
                     }
                 }
             }
             GUILayout.EndScrollView();
-
-            //Reset Button
-            GUILayout.BeginHorizontal(GUILayout.ExpandHeight(false));
-            if (GUILayout.Button("Reset To Default", _buttonStyle))
-            {
-                //settingWindowActive = false;
-                settings.Reset();
-            }
-            GUILayout.EndHorizontal();
-
-            GUILayout.BeginHorizontal(GUILayout.ExpandHeight(false));
-            if (GUILayout.Button("Apply", _buttonStyle))
-            {
-                settingWindowActive = false;
-                settings.Save();
-            }
             GUILayout.EndHorizontal();
 
             GUILayout.EndVertical();

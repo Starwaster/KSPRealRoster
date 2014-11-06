@@ -8,351 +8,221 @@ using UnityEngine;
 namespace RealRoster
 {
     // Toolbar should be available via KSC, hence the 'everyscene'
-    [KSPAddon(KSPAddon.Startup.EveryScene, false)]
+    [KSPAddon(KSPAddon.Startup.EditorAny, false)]
     public class RealRoster : MonoBehaviour
     {
-
         // If this value is true, print debug messages
-        bool debug = false;
+        static bool debug = true;
 
-        // This structure holds an association between Parts and their Crew configurations which the user has written
-        Dictionary<Part, ProtoCrewMember[]> assignedCrewDictionary = new Dictionary<Part, ProtoCrewMember[]>();
+        // Instance of this singleton
+        public static RealRoster instance = null;
 
-        // This value indicates that the VesselCrewManifest has been regenerated, and action should
-        // be taken next frame. Returns false if action does not need to be taken next frame.
-        bool dirtyFlag;
+        // Reference to settings scenario
+        private RealRosterSettings settings = null;
 
-        // This value indicates that the first pod eligible for auto-crewing has been placed, and action should
-        // be taken next frame. Returns false if action has been taken or no pod has been placed.
-        bool firstPodFlag;
+        // List of registered CrewSelectionModes
+        public List<ICrewSelectionMode> modes = new List<ICrewSelectionMode>();
 
-        // Stores the reference to the first auto-crew pod. If this value is null, it has not been placed.
-        Part firstPod = null;
-
-        // Reference to singleton Settings class (Thanks Vendan!)
-        RealRosterSettings settings = RealRosterSettings.Instance;
-
-        // Unity initialization call
         public void Awake()
         {
-            if (HighLogic.LoadedSceneIsEditor)
-            {
-
-                if (debug)
-                {
-                    DebugMessage("Plugin is initializing");
-                    DebugMessage("crewAssignment: " + settings.crewAssignment);
-                    DebugMessage("crewRandomization: " + settings.crewRandomization);
-
-                    foreach (String name in settings.blackList)
-                    {
-                        DebugMessage("BlackList: " + name);
-                    }
-                }
-            }
+            DebugMessage("Awake()");
+            instance = this;
         }
 
         public void Start()
         {
-            RealRosterGUI gui = new RealRosterGUI();
-            gui.init();
-        }
+            DebugMessage("Start()");
 
-        // I'm not sure this ever gets called.
-        public void OnDestroy()
-        {
             if (HighLogic.LoadedSceneIsEditor)
             {
-                settings.eventRegistered = false;
-                GameEvents.onEditorShipModified.Remove(onEditorShipModified);
+                GameEvents.onEditorShipModified.Add(onEditorShipModified);
+                DebugMessage("Successfully registered onEditorShipModified");
             }
         }
-
+        
         // Occurs on every frame
         public void Update()
         {
-
-            if (HighLogic.LoadedSceneIsEditor)
+            if (RealRosterSettings.instance != null && settings == null)
             {
-                if (!settings.eventRegistered)
-                {
-                    DebugMessage("Event Registered");
-                    GameEvents.onEditorShipModified.Add(onEditorShipModified);
-                    settings.eventRegistered = true;
-                }
-
-                // Kinda kludgey, but this is where the game stores the active Manifest. It isn't always valid, and our code assumes it is valid.
-                // This might lose us a few update frames, but I couldn't find any bug introduced from it.
-                if (ShipConstruction.ShipManifest != null)
-                {
-                    // If action needs to be taken because a pod has been placed for the first time.
-                    // No reason to execute the other stages here, though!
-                    if (firstPodFlag)
-                    {
-                        cleanUpManifest();
-                        onFirstPod();
-                        syncDictionary();
-                    }
-                    // If an editor update has happened, we need to clean up the mess
-                    else if (dirtyFlag)
-                    {
-                        cleanUpManifest();
-                    }
-                    // Otherwise, just record the user input
-                    else if (EditorLogic.fetch.editorScreen == EditorLogic.EditorScreen.Crew)
-                    {
-                        syncDictionary();
-                    }
-                }
+                settings = RealRosterSettings.instance;
+                DebugMessage("Obtained reference to settings.");
             }
+        }
+
+        public void OnDestroy()
+        {
+            DebugMessage("OnDestroy()");
+            instance = null;
+            GameEvents.onEditorShipModified.Remove(onEditorShipModified);
         }
 
         // Occurs every time any part is 'clicked' in the editor.
         void onEditorShipModified(ShipConstruct ship)
         {
-            // The main reason we hook this event is to notice that it happened. 
-            // This flag primes our Update() method to fix the roster in the next frame.
-            dirtyFlag = true;
-
-            // If the ShipConstruct has parts (IE, has a root part been placed?)
-            if (ship.Count > 0)
-            {
-                if (firstPod == null)
-                {
-                    // The natural ordering is what is important. Natural ordering is roughly 'distance from root', and is what
-                    // most of the base game uses for locating parts. 
-                    foreach (Part part in ship)
-                    {
-                        // We want a part that crew can control the ship from.
-                        if (part.isControlSource && part.CrewCapacity > 0)
-                        {
-                            firstPod = part;
-                            firstPodFlag = true;
-                            DebugMessage("First Pod Placed!: " + firstPod.partInfo.title);
-                            break; // We are not interested in the remainder of the iteration sequence.
-                        }
-                    }
-                }
-            }
-
-            // Otherwise, the root part was just deleted. This 'event' might be useful in the future, but currently this is dead code.
-            else
-            {
-                DebugMessage("Root part has been deleted");
-                onRootDeletion();
-            }
+            
         }
 
-        // Occurs when the first pod eligible for crewing is placed.
-        void onFirstPod()
+        public void registerCrewSelectionMode(ICrewSelectionMode mode)
         {
-            // We are taking action, disable the action flag.
-            firstPodFlag = false;
-
-            // If the configuration plugin allows us to crew the first pod...
-            if (settings.crewAssignment)
+            if (!modes.Contains(mode))
             {
-                EditorLogic editor = EditorLogic.fetch;
-                VesselCrewManifest nextManifest = ShipConstruction.ShipManifest;
-
-                crewPartWithAssignment(firstPod, getCrewForPod(firstPod.CrewCapacity));
-
-                CMAssignmentDialog.Instance.RefreshCrewLists(nextManifest, false, true);
+                DebugMessage("Registering CrewSelectionMode: " + mode.ToString());
+                modes.Add(mode);
             }
-        }
-
-        // Occurs when the root part is deleted.
-        // Possibly need to implement some reset code in here, but does not seem needed at this time.
-        // Leaving code here in case it is needed, as finding the detection criteria was annoying.
-        void onRootDeletion()
-        {            
-        }
-
-        // Returns the PartCrewManifest that is owned by the specified Part.
-        // If the Part is not attached to the ShipConstruct, null will be returned.
-        // **REFACTOR ME?**
-        PartCrewManifest findManifestByPart(Part part)
-        {
-            ShipConstruct ship = EditorLogic.fetch.ship;
-            for (int idx = 0; idx < ship.Count; idx++)
-            {
-                if (part == ship[idx])
-                {
-                    return ShipConstruction.ShipManifest[idx];
-                }
-            }
-            return null;
-        }
-
-        // Fills the part's crew capacity with the specified crew array.
-        void crewPartWithAssignment(Part part, ProtoCrewMember[] crew)
-        {
-            PartCrewManifest manifest = findManifestByPart(part);
-
-            int limit = (part.CrewCapacity < crew.Length) ? part.CrewCapacity : crew.Length;
-            for (int idx = 0; idx < limit; idx++)
-            {
-                if (crew[idx] != null)
-                {
-                    manifest.AddCrewToSeat(crew[idx], idx);
-                }
-            }
-        }
-
-        // Generates a random crew for the pod, based on settings.
-		// If randomization is off then a sorted roster list is used with Kerbals selected in order. -Starwaster
-        ProtoCrewMember[] getCrewForPod(int capacity)
-        {
-            ProtoCrewMember[] crew = new ProtoCrewMember[capacity];
-			List<ProtoCrewMember> roster = new List<ProtoCrewMember>();
-
-			if (settings.crewRandomization)
-				roster = HighLogic.CurrentGame.CrewRoster.Kerbals(ProtoCrewMember.KerbalType.Crew, ProtoCrewMember.RosterStatus.Available).ToList();
-			else
-			{
-				roster = RotationScenario.Instance.CrewRotationPool;
-				Debug.Log ("RRScenario.Instance.crewRotationRoster length = " + RotationScenario.Instance.CrewRotationPool.Count.ToString ());
-			}
-			Debug.Log ("Got roster, length = " + roster.Count);
-			foreach (ProtoCrewMember _kerbal in roster)
-				Debug.Log ("            " + _kerbal.name);
-
-            foreach (ProtoCrewMember kerbal in roster.ToList())
-            {
-                if (settings.blackList.Contains(kerbal.name))
-                {
-                    roster.Remove(kerbal);
-                }
-            }
-			Debug.Log ("Processed black list");
-
-            // Use either the size of the roster or the capacity of the module, whichever is lower.
-            capacity = (capacity < roster.Count) ? capacity : roster.Count;
-
-            for (int idx = 0; idx < capacity; idx++)
-            {
-                if (settings.crewRandomization)
-                {
-                    crew[idx] = roster[UnityEngine.Random.Range(0, (roster.Count - 1))];
-                }
-                else
-                {
-                    crew[idx] = roster.FirstOrDefault();
-					if ((object)crew[idx] == null)
-						Debug.Log ("Roster returned null result");
-                }
-                roster.Remove(crew[idx]);
-				Debug.Log ("Roster length = " + roster.Count);
-				foreach (ProtoCrewMember _kerbal in roster)
-					Debug.Log ("- " + _kerbal.name);
-			}
-
-            return crew;
-        }
-
-        // Deletes all crew from manifests, and restores saved crew configurations.
-        // This occurs one frame after any editor update. It should be impossible for any
-        // changes to be made by the user between such an update and this method occuring.
-        void cleanUpManifest()
-        {
-            DebugMessage("Cleaning Up Vessel Manifest...");
-
-            EditorLogic editor = EditorLogic.fetch;
-            VesselCrewManifest nextManifest = ShipConstruction.ShipManifest;
-
-            foreach (PartCrewManifest nextCrewManifest in nextManifest)
-            {
-                if (nextCrewManifest.PartInfo.partPrefab.CrewCapacity > 0)
-                {
-                    DebugMessage("Cleaning Up Part Manifest for: " + nextCrewManifest.PartInfo.title);
-                    ProtoCrewMember[] crewArray = nextCrewManifest.GetPartCrew();
-                    for (int i = 0; i < crewArray.Length; i++)
-                    {
-                        if (crewArray[i] != null)
-                        {
-                            nextCrewManifest.RemoveCrewFromSeat(i);
-                        }
-                    }
-                }
-            }
-
-            // Place correct Crew back
-            List<ProtoCrewMember> addedList = new List<ProtoCrewMember>();
-
-            foreach (Part pod in assignedCrewDictionary.Keys)
-            {
-                // We can't touch pods which are not attached
-                if (editor.ship.Contains(pod))
-                {
-                    ProtoCrewMember[] group = assignedCrewDictionary[pod];
-
-                    //Make sure that this Kerbal isn't being cloned
-                    for (int idx = 0; idx < group.Length; idx++)
-                    {
-                        if (addedList.Contains(group[idx]))
-                        {
-                            group[idx] = null;
-                        }
-                        else
-                        {
-                            // Add this kerb to our list of people who already have a seat
-                            addedList.Add(group[idx]);
-                        }
-                    }
-                    // Perform the crewing.
-                    crewPartWithAssignment(pod, group);
-                }
-            }
-
-            // reset dirty flag
-            dirtyFlag = false;
-            CMAssignmentDialog.Instance.RefreshCrewLists(nextManifest, false, true);
-        }
-
-        // This occurs on frames when there was no editor update.
-        // There is no way to detect when a Kerbal is actually added to the roster manually, afaik.
-        // **HIGHLY INEFFICENT, LOOK HERE FOR PERFORMANCE PROBLEMS**
-        void syncDictionary()
-        {
-            EditorLogic editor = EditorLogic.fetch;
-            VesselCrewManifest nextManifest = CMAssignmentDialog.Instance.GetManifest();
-
-            // Scan for crewable parts not yet in our dictionary
-            for (int i = 0; i < editor.ship.Count; i++)
-            {
-                Part current = editor.ship[i];
-                if (current.CrewCapacity > 0 && !assignedCrewDictionary.Keys.Contains(current))
-                {
-                    //DebugMessage("Adding to dictionary, part: " + current.partInfo.title + " manifest: " + nextManifest[i].PartInfo.title);
-                    assignedCrewDictionary.Add(current, nextManifest[i].GetPartCrew());
-                }
-            }
-
-            // Look for parts with updated crews
-            for (int i = 0; i < editor.ship.Count; i++)
-            {
-                Part shipPart = editor.ship[i];
-                if (assignedCrewDictionary.ContainsKey(shipPart))
-                {
-                    //DebugMessage("Updating part in dictionary: " + nextManifest[i].PartInfo.title);
-                    assignedCrewDictionary[shipPart] = nextManifest[i].GetPartCrew();
-                }
-            }
-
-            // Remove parts which don't exist in the scene anymore.
-            // the Part key has gone null. THIS IS WEIRD
-            assignedCrewDictionary = (from kv in assignedCrewDictionary
-                                      where kv.Key != null
-                                      select kv).ToDictionary(kv => kv.Key, kv => kv.Value);
-
-            ShipConstruction.ShipManifest = nextManifest;
         }
 
         // Conditionally prints a debug message.
-        void DebugMessage(string message)
+        public static void DebugMessage(string message)
         {
             if (debug)
+            {
                 print("RealRoster: " + message);
+            }
         }
+    }
+
+    [KSPScenario(ScenarioCreationOptions.AddToAllGames, new GameScenes[] { GameScenes.EDITOR })]
+    public class RealRosterSettings : ScenarioModule
+    {
+        // Reference to the singleton of this class
+        public static RealRosterSettings instance = null;
+
+        [KSPField(isPersistant=true)]
+        public bool allowCustomCrewing = true;
+        [KSPField(isPersistant = true)]
+        public string selectionModeName = RealRoster.instance.modes.FirstOrDefault().CleanName;
+        [KSPField(isPersistant = true)]
+        public List<string> crewBlackList = new List<string>();
+
+        // Constructor
+        public void Start()
+        {
+            instance = this;
+        }
+
+        public void onDestroy()
+        {
+            instance = null;
+        }
+    }
+
+    [KSPAddon(KSPAddon.Startup.EditorAny, false)]
+    class RealRosterGUI : MonoBehaviour 
+    {
+        RealRosterSettings settings = null;
+
+        private IButton button = null;
+        public static readonly String RESOURCE_PATH = "Enneract/RealRoster/Resources/";
+
+        Dictionary<String, bool> tempBlackList = new Dictionary<String, bool>();
+
+        protected Rect windowPos = new Rect(Screen.width / 4, Screen.height / 4, 10f, 10f);
+        public bool settingWindowActive = false;
+        private GUIStyle _windowStyle, _labelStyle, _buttonStyle, _toggleStyle, _scrollStyle, _hscrollBarStyle, _vscrollBarStyle;
+        public Vector2 scrollPosition, scrollPosition2;
+
+        public void Awake()
+        {
+            _windowStyle = new GUIStyle(HighLogic.Skin.window);
+            _windowStyle.fixedWidth = 250f;
+            _windowStyle.fixedHeight = 400f;
+
+            _labelStyle = new GUIStyle(HighLogic.Skin.label);
+            _labelStyle.stretchWidth = true;
+
+            _buttonStyle = new GUIStyle(HighLogic.Skin.button);
+            _toggleStyle = new GUIStyle(HighLogic.Skin.toggle);
+
+            _scrollStyle = new GUIStyle(HighLogic.Skin.scrollView);
+            _vscrollBarStyle = new GUIStyle(HighLogic.Skin.verticalScrollbar);
+            _hscrollBarStyle = new GUIStyle(HighLogic.Skin.horizontalScrollbar);
+
+
+            RenderingManager.AddToPostDrawQueue(3, new Callback(drawGUI));
+        }
+
+        public void Update()
+        {
+            if (RealRosterSettings.instance != null && settings == null)
+            {
+                settings = RealRosterSettings.instance;
+            }
+
+            if (settings && button == null)
+            {
+                String iconOff = RESOURCE_PATH + "IconOff";
+                button = ToolbarManager.Instance.add("RealRoster", "button");
+                if (button != null)
+                {
+                    button.TexturePath = iconOff;
+                    button.ToolTip = "RealRoster Settings";
+                    button.OnClick += (e) =>
+                    {
+                        settingWindowActive = !settingWindowActive;
+                    };
+
+                    button.Visibility = new GameScenesVisibility(GameScenes.EDITOR);
+                }
+            }
+        }
+
+        private void mainGUI(int windowID)
+        {
+
+            GUI.skin.verticalScrollbarThumb = HighLogic.Skin.verticalScrollbarThumb;
+            GUILayout.BeginVertical();
+
+            GUILayout.BeginHorizontal(GUILayout.ExpandWidth(false));
+            settings.allowCustomCrewing = GUILayout.Toggle(settings.allowCustomCrewing, "Custom Default Crewing", _toggleStyle);
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal(GUILayout.ExpandWidth(false));
+            GUILayout.Label("Blacklist: (Click to Remove)", _labelStyle);
+            GUILayout.EndHorizontal();
+
+            scrollPosition = GUILayout.BeginScrollView(scrollPosition, false, true, _hscrollBarStyle, _vscrollBarStyle, _scrollStyle);
+
+            foreach (String kerbal in settings.crewBlackList)
+            {
+                GUILayout.BeginHorizontal(GUILayout.ExpandWidth(false));
+                if (GUILayout.Button(kerbal))
+                {
+                    settings.crewBlackList.Remove(kerbal);
+
+                }
+                GUILayout.EndHorizontal();
+
+            }
+         
+            GUILayout.EndScrollView();
+
+            // Iterate through all Kerbals (including those not on a mission).
+            List<ProtoCrewMember> roster = HighLogic.CurrentGame.CrewRoster.Kerbals(ProtoCrewMember.KerbalType.Crew, ProtoCrewMember.RosterStatus.Available).ToList();
+            GUILayout.Label("Crew: (Click to add to Blacklist)", _labelStyle);
+            scrollPosition2 = GUILayout.BeginScrollView(scrollPosition2, GUILayout.ExpandWidth(true), GUILayout.Height(100));
+            foreach (ProtoCrewMember kerbal in roster)
+            {
+                if (!settings.crewBlackList.Contains(kerbal.name))
+                {
+                    if (GUILayout.Button(kerbal.name))
+                    {
+                        settings.crewBlackList.Add(kerbal.name);
+                    }
+                }
+            }
+            GUILayout.EndScrollView();
+            GUILayout.EndVertical();
+            GUI.DragWindow();
+        }
+
+        private void drawGUI()
+        {
+            if (settingWindowActive)
+            {
+                windowPos = GUILayout.Window(0, windowPos, mainGUI, "RealRoster Settings", _windowStyle);
+            }
+        }
+        
     }
 }
