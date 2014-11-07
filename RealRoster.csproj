@@ -47,9 +47,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CrewSelectionMode.cs" />
-    <Compile Include="Settings.cs" />
+    <Compile Include="RealRosterSettings.cs" />
     <Compile Include="ToolbarManager.cs" />
-    <Compile Include="RealRoster.cs" />
+    <Compile Include="Logic.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -38,7 +38,29 @@ namespace RealRoster
 
     interface ICrewSelectionMode
     {
+        // Human-readable name for this mode. (This is what is displayed in the settings menu).
         string CleanName { get; }
+
+        // This method will be called when the settings are written to persistence.
+
+        void OnLoad(ConfigNode config);
+        // This method will be called when the settings are read from persistence.
+        void OnSave(ConfigNode config);
+    }
+
+    class DefaultSelectionMode : ICrewSelectionMode
+    {
+        private static readonly string TAG = "DefaultSelectionMode";
+
+        public string CleanName { get { return "Default Crew"; } }
+
+        public DefaultSelectionMode()
+        {
+            CommonLogic.DebugMessage(TAG, "Loading DefaultSelectionMode");
+        }
+
+        public void OnLoad(ConfigNode config) { } // This implementation does not write to the ConfigNode
+        public void OnSave(ConfigNode config) { } // This implementation does not write to the ConfigNode
     }
 
     class NullSelectionMode : ICrewSelectionMode
@@ -51,17 +73,23 @@ namespace RealRoster
         {
             CommonLogic.DebugMessage(TAG, "Loading NullSelectionMode");
         }
+
+        public void OnLoad(ConfigNode config) { } // This implementation does not write to the ConfigNode
+        public void OnSave(ConfigNode config) { } // This implementation does not write to the ConfigNode
     }
 
-    class RandomSelectionModule : ICrewSelectionMode
+    class RandomSelectionMode : ICrewSelectionMode
     {
         private static readonly string TAG = "RandomSelectionMode";
 
-        public string CleanName { get { return "Randomize Crew"; } }
+        public string CleanName { get { return "Random Crew"; } }
 
-        public RandomSelectionModule()
+        public RandomSelectionMode()
         {
             CommonLogic.DebugMessage(TAG, "Loading RandomSelectionMode");
         }
+
+        public void OnLoad(ConfigNode config) { } // This implementation does not write to the ConfigNode
+        public void OnSave(ConfigNode config) { } // This implementation does not write to the ConfigNode
     }
 }
