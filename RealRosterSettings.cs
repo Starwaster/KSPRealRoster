@@ -21,6 +21,8 @@ namespace RealRoster
         public List<string> BlackList { get { return new List<string>(privateBlackList); } }
         private List<string> privateBlackList = new List<string>();
 
+        public static RealRosterSettings Instance = null;
+
         //Automatic Persistent Fields
 
         // This section syncronizes a string value which gets written to persistence the numeric index of that mode.
@@ -39,11 +41,11 @@ namespace RealRoster
             }
         }
 
-        ICrewSelectionMode ActiveCSM
+        internal static ICrewSelectionMode ActiveCSM
         {
             get
             {
-                return CrewSelectionModeLoader.Instance.LoadedModes[CrewSelectionModeIndex];
+                return CrewSelectionModeLoader.Instance.LoadedModes[Instance.CrewSelectionModeIndex];
             }
         }
 
@@ -58,6 +60,7 @@ namespace RealRoster
         void Start()
         {
             CommonLogic.DebugMessage(TAG, "Start...");
+            Instance = this;
 
             ModeTextArray = new string[CrewSelectionModeLoader.Instance.LoadedModes.Count];
             foreach (var mode in CrewSelectionModeLoader.Instance.LoadedModes.Select((value, i) => new { i, value }))
@@ -109,13 +112,13 @@ namespace RealRoster
 
             if (SettingsWindowVisible)
             {
-                if (WindowPosition.Contains(Input.mousePosition) && InputLockManager.GetControlLock("RealRosterLock") == ControlTypes.None)
+                if (WindowPosition.Contains(Input.mousePosition) && InputLockManager.GetControlLock(CAPTION) == ControlTypes.None)
                 {
-                    InputLockManager.SetControlLock(ControlTypes.All, "RealRosterLock");
+                    InputLockManager.SetControlLock(ControlTypes.All, CAPTION);
                 }
-                else if (!WindowPosition.Contains(Input.mousePosition) && InputLockManager.GetControlLock("RealRosterLock") != ControlTypes.None)
+                else if (!WindowPosition.Contains(Input.mousePosition) && InputLockManager.GetControlLock(CAPTION) != ControlTypes.None)
                 {
-                    InputLockManager.RemoveControlLock("RealRosterLock");
+                    InputLockManager.RemoveControlLock(CAPTION);
                 }
             }
 

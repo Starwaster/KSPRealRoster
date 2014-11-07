@@ -7,13 +7,13 @@ using UnityEngine;
 
 namespace RealRoster
 {
-    //[KSPAddon(KSPAddon.Startup.EditorAny, false)]
+    [KSPAddon(KSPAddon.Startup.EditorAny, false)]
     class EditorBehaviour : MonoBehaviour
     {
         private static readonly string TAG = "EditorBehaviour";       
     }
 
-    //[KSPAddon(KSPAddon.Startup.SpaceCentre, false)]
+    [KSPAddon(KSPAddon.Startup.SpaceCentre, false)]
     class SpaceCenterBehaviour : MonoBehaviour
     {
         private static readonly string TAG = "SpaceCenterBehaviour";
@@ -25,16 +25,11 @@ namespace RealRoster
 
         private void onVesselSelected(ShipTemplate shipTemplate)
         {
+            CommonLogic.DebugMessage(TAG, "onVesselSelected()");
             CMAssignmentDialog dialog = CMAssignmentDialog.Instance;
             VesselCrewManifest vcm = dialog.GetManifest();
 
-            foreach (PartCrewManifest pcm in vcm)
-            {
-                for (int i = 0; i < pcm.GetPartCrew().Length; i++)
-                {
-                    pcm.RemoveCrewFromSeat(i);
-                }
-            }
+            CommonLogic.getDefaultManifest(vcm);
 
             dialog.RefreshCrewLists(vcm, false, true);
         }
@@ -47,6 +42,8 @@ namespace RealRoster
    
     public static class CommonLogic
     {
+        private static readonly string TAG = "CommonLogic";
+
         // If this value is true, print debug messages
         private static bool debug = true;
 
@@ -59,9 +56,19 @@ namespace RealRoster
             }
         }
 
-        public static void getDefaultCrewForPod()
+        public static void getDefaultManifest(VesselCrewManifest sourceVCM) 
         {
+            CommonLogic.DebugMessage(TAG, "getDefaultManifest()");
+            foreach (PartCrewManifest pcm in sourceVCM)
+            {
+                // Vital bits about the part.
+                int capacity = pcm.PartInfo.partPrefab.CrewCapacity;
 
+                if (capacity > 0 && pcm.GetPartCrew()[capacity - 1] != null)
+                {
+                    RealRosterSettings.ActiveCSM.fillPartCrewManifest(pcm);
+                }
+            }
         }
     }
 }
