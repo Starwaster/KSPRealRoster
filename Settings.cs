@@ -7,8 +7,8 @@ using UnityEngine;
 namespace RealRoster
 {
     // This gets loaded after KSPAddons are
-    [KSPScenario(ScenarioCreationOptions.AddToAllGames, new GameScenes[] { GameScenes.EDITOR, GameScenes.SPACECENTER })]
-    class SettingsModule : ScenarioModule
+    [KSPScenario(ScenarioCreationOptions.AddToAllGames, new GameScenes[] { GameScenes.EDITOR, GameScenes.SPH, GameScenes.SPACECENTER })]
+    public class SettingsModule : ScenarioModule
     {
         // Statics
         private static readonly string RESOURCE_PATH = "Enneract/RealRoster/Resources/";
@@ -25,18 +25,39 @@ namespace RealRoster
 
         //Manual Persistent Fields
         public List<string> BlackList { get { return new List<string>(privateBlackList); } }
-        private List<string> privateBlackList;
+        private List<string> privateBlackList = new List<string>();
+
+        // Returns the index of the active CSM
+        private int CrewSelectionModeIndex
+        {
+            get
+            {
+                return Array.IndexOf(ModeTextArray, CrewSelectionMode);
+            }
+            set
+            {
+                CrewSelectionMode = ModeTextArray[value];
+            }
+        }
+
+        // Returns the reference to an instance of the selected CrewSelectionMode
+        public ICrewSelectionMode ActiveCSM
+        {
+            public get
+            {
+                return CrewSelectionModeLoader.Instance.LoadedModes[CrewSelectionModeIndex];
+            }
+        }
 
         //GUI Fields
         private IButton SettingsButton;
         private bool SettingsWindowVisible;
-        
-        
-        void Awake()
-        {
-            CommonLogic.DebugMessage(TAG, "Awake...");
+        protected Rect windowPos;
+        protected string[] ModeTextArray;
 
-            SettingsWindowVisible = false;
+        public override void OnAwake()
+        {
+            //Use this instead.
         }
 
         void Start()
@@ -46,27 +67,51 @@ namespace RealRoster
             {
                 CommonLogic.DebugMessage(TAG, "Toolbar is available.");
 
+                ModeTextArray = new string[CrewSelectionModeLoader.Instance.LoadedModes.Count];
+                foreach (var mode in CrewSelectionModeLoader.Instance.LoadedModes.Select((value, i) => new {i, value}))
+                {
+                    ModeTextArray[mode.i] = mode.value.CleanName;
+                }
+
+                RenderingManager.AddToPostDrawQueue(3, new Callback(guiProxy));
+
                 // This should be the last statement of this method.
                 // Do not initialize the Button until everything else is set up.
                 SettingsButton = ToolbarManager.Instance.add(CAPTION, CAPTION);
                 if (SettingsButton != null)
                 {
-                    SettingsButton.TexturePath = RESOURCE_PATH + "IconOff";
+                    SettingsButton.TexturePath = ICON_OFF;
                     SettingsButton.ToolTip = CAPTION;
 
                     SettingsButton.OnClick += (e) =>
                     {
-                        SettingsButton.TexturePath = SettingsWindowVisible ? ICON_ON : ICON_OFF;
+                        SettingsButton.TexturePath = SettingsWindowVisible ? ICON_OFF : ICON_ON;
                         SettingsWindowVisible = !SettingsWindowVisible;
                     };
 
                     SettingsButton.Visibility = new GameScenesVisibility(GameScenes.EDITOR, GameScenes.SPH, GameScenes.SPACECENTER);
                 }
-
+            }
+            else
+            {
+                CommonLogic.DebugMessage(TAG, "Toolbar is not available, disabling functionality");
             }
         }
 
-        override void OnSave(ConfigNode config)
+        void guiProxy()
+        {
+            if (SettingsWindowVisible)
+                windowPos = GUILayout.Window(0, windowPos, drawWindow, "RealRoster Settings");
+        }
+
+        void drawWindow(int WindowID)
+        {
+            AllowCustomCrew = GUILayout.Toggle(AllowCustomCrew, "Customize Default Crews");
+
+            GUI.DragWindow();        
+        }
+
+        public override void OnSave(ConfigNode config)
         {
             CommonLogic.DebugMessage(TAG, "Saving...");
             base.OnSave(config);
@@ -80,7 +125,7 @@ namespace RealRoster
             config.AddNode(blacklistNode);
         }
 
-        override void OnLoad(ConfigNode config)
+        public override void OnLoad(ConfigNode config)
         {
             CommonLogic.DebugMessage(TAG, "Loading...");
             base.OnLoad(config);

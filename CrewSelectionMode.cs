@@ -28,7 +28,7 @@ namespace RealRoster
                 Type[] interfaces = type.GetInterfaces();
                 if (interfaces.Contains(typeof(ICrewSelectionMode)) && type.IsClass)
                 {
-                    CommonLogic.DebugMessage(TAG, "CrewSelectionModeLoader found Mode called: " + type.Name);
+                    CommonLogic.DebugMessage(TAG, "found Mode called: " + type.Name);
                     object obj = Activator.CreateInstance(type);
                     LoadedModes.Add((ICrewSelectionMode)obj);
                 }
