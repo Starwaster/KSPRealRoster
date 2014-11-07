@@ -58,5 +58,10 @@ namespace RealRoster
                 UnityEngine.Debug.Log("RealRoster: " + tag + ": " + message);
             }
         }
+
+        public static void getDefaultCrewForPod()
+        {
+
+        }
     }
 }

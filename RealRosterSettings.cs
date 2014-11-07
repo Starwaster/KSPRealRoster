@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace RealRoster
 {
-    // This gets loaded after KSPAddons are
+    // This gets loaded after KSPAddons are, so this has more or less become the 'central' module of the mod.
     [KSPScenario(ScenarioCreationOptions.AddToAllGames, new GameScenes[] { GameScenes.EDITOR, GameScenes.SPH, GameScenes.SPACECENTER })]
     public class RealRosterSettings : ScenarioModule
     {
@@ -17,15 +17,16 @@ namespace RealRoster
         private static readonly string TAG = "SettingsModule";
         private static readonly string CAPTION = "RealRoster";
 
-        //Automatic Persistent Fields
-        [KSPField(isPersistant = true)]
-        public string CrewSelectionMode = CrewSelectionModeLoader.Instance.LoadedModes.FirstOrDefault().CleanName;
-
         //Manual Persistent Fields
         public List<string> BlackList { get { return new List<string>(privateBlackList); } }
         private List<string> privateBlackList = new List<string>();
 
-        // Returns the index of the active CSM
+        //Automatic Persistent Fields
+
+        // This section syncronizes a string value which gets written to persistence the numeric index of that mode.
+        [KSPField(isPersistant = true)]
+        public string CrewSelectionMode = CrewSelectionModeLoader.Instance.LoadedModes.FirstOrDefault().CleanName;
+
         private int CrewSelectionModeIndex
         {
             get
@@ -38,7 +39,6 @@ namespace RealRoster
             }
         }
 
-        // Returns the reference to an instance of the selected CrewSelectionMode
         ICrewSelectionMode ActiveCSM
         {
             get
@@ -50,8 +50,8 @@ namespace RealRoster
         //GUI Fields
         private IButton SettingsButton;
         private bool SettingsWindowVisible;
-        private GUIStyle _windowStyle, _labelStyle, _buttonStyle, _toggleStyle, _scrollStyle, _hscrollBarStyle, _vscrollBarStyle;
-        protected Rect WindowPosition = new Rect(Screen.width / 4, Screen.height / 4, 10f, 10f);
+        private GUIStyle _windowStyle, _labelStyle, _buttonStyle, _scrollStyle;
+        protected Rect WindowPosition = new Rect((Screen.width / 4)*3, Screen.height / 10, 10f, 10f);
         protected string[] ModeTextArray;
         public Vector2 RosterScrollPosition, BlackListScrollPosition;
 
@@ -68,20 +68,6 @@ namespace RealRoster
             if (ToolbarManager.ToolbarAvailable)
             {
                 CommonLogic.DebugMessage(TAG, "Toolbar is available.");
-
-                _windowStyle = new GUIStyle(HighLogic.Skin.window);
-                _windowStyle.fixedWidth = 250f;
-                _windowStyle.fixedHeight = 400f;
-
-                _labelStyle = new GUIStyle(HighLogic.Skin.label);
-                _labelStyle.stretchWidth = true;
-
-                _buttonStyle = new GUIStyle(HighLogic.Skin.button);
-                _toggleStyle = new GUIStyle(HighLogic.Skin.toggle);
-
-                _scrollStyle = new GUIStyle(HighLogic.Skin.scrollView);
-                _vscrollBarStyle = new GUIStyle(HighLogic.Skin.verticalScrollbar);
-                _hscrollBarStyle = new GUIStyle(HighLogic.Skin.horizontalScrollbar);
 
                 RenderingManager.AddToPostDrawQueue(3, new Callback(guiProxy));
 
@@ -110,39 +96,71 @@ namespace RealRoster
 
         void guiProxy()
         {
+            _windowStyle = new GUIStyle(HighLogic.Skin.window);
+            _windowStyle.fixedWidth = 250f;
+
             if (SettingsWindowVisible)
-                WindowPosition = GUILayout.Window(0, WindowPosition, drawWindow, "RealRoster Settings", _windowStyle);
+                WindowPosition = GUILayout.Window(9001, WindowPosition, drawWindow, "RealRoster Settings", _windowStyle);
         }
 
         void drawWindow(int WindowID)
         {
-            CommonLogic.DebugMessage(TAG, CrewSelectionModeIndex + " " + ModeTextArray.Length);
-            CrewSelectionModeIndex = GUILayout.SelectionGrid(CrewSelectionModeIndex, ModeTextArray, 1);
+            GUI.skin = HighLogic.Skin;
+
+            if (SettingsWindowVisible)
+            {
+                if (WindowPosition.Contains(Input.mousePosition) && InputLockManager.GetControlLock("RealRosterLock") == ControlTypes.None)
+                {
+                    InputLockManager.SetControlLock(ControlTypes.All, "RealRosterLock");
+                }
+                else if (!WindowPosition.Contains(Input.mousePosition) && InputLockManager.GetControlLock("RealRosterLock") != ControlTypes.None)
+                {
+                    InputLockManager.RemoveControlLock("RealRosterLock");
+                }
+            }
+
+            _labelStyle = new GUIStyle(GUI.skin.label);
+            _labelStyle.stretchWidth = true;
+
+            _buttonStyle = new GUIStyle(GUI.skin.button);
+            _buttonStyle.padding = new RectOffset(3, 3, 3, 3);
+
+            _scrollStyle = new GUIStyle(GUI.skin.scrollView);
+
+            GUILayout.BeginHorizontal(GUILayout.ExpandWidth(false));
+            GUILayout.Label("Automatic Crew Mode", _labelStyle);
+            GUILayout.EndHorizontal();
+
+            List<string> tempBlackList = new List<string>(privateBlackList);
+
+            CrewSelectionModeIndex = GUILayout.SelectionGrid(CrewSelectionModeIndex, ModeTextArray, 1, _buttonStyle);
 
             GUILayout.Label("Crew: (Click to add to Blacklist)", _labelStyle);
-            RosterScrollPosition = GUILayout.BeginScrollView(RosterScrollPosition, GUILayout.ExpandWidth(true), GUILayout.Height(100));
+            RosterScrollPosition = GUILayout.BeginScrollView(RosterScrollPosition, GUILayout.ExpandWidth(true), GUILayout.Height(200));
             foreach (ProtoCrewMember kerbal in HighLogic.CurrentGame.CrewRoster.Kerbals(ProtoCrewMember.KerbalType.Crew, ProtoCrewMember.RosterStatus.Available).ToList())
             {
                 if (!privateBlackList.Contains(kerbal.name))
                 {
-                    if (GUILayout.Button(kerbal.name))
+                    if (GUILayout.Button(kerbal.name, _buttonStyle))
                     {
-                        privateBlackList.Add(kerbal.name);
+                        tempBlackList.Add(kerbal.name);
                     }
                 }
             }
             GUILayout.EndScrollView();
 
             GUILayout.Label("Blacklist: (Click to Remove)", _labelStyle);
-            BlackListScrollPosition = GUILayout.BeginScrollView(BlackListScrollPosition, GUILayout.ExpandWidth(true), GUILayout.Height(100));
+            BlackListScrollPosition = GUILayout.BeginScrollView(BlackListScrollPosition, GUILayout.ExpandWidth(true), GUILayout.Height(200));
             foreach (string kerbal in privateBlackList)
-            {               
-                if (GUILayout.Button(kerbal))
+            {
+                if (GUILayout.Button(kerbal, _buttonStyle))
                 {
-                    privateBlackList.Remove(kerbal);
+                    tempBlackList.Remove(kerbal);
                 }
             }
             GUILayout.EndScrollView();
+
+            privateBlackList = tempBlackList;
 
             GUI.DragWindow();        
         }
