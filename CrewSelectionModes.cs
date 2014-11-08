@@ -15,7 +15,7 @@ namespace RealRoster
         public static CrewSelectionModeLoader Instance = null;
         public List<ICrewSelectionMode> LoadedModes;
 
-        void Awake() 
+        void Awake()
         {
             CommonLogic.DebugMessage(TAG, "Awake...");
             DontDestroyOnLoad(this);
@@ -47,7 +47,7 @@ namespace RealRoster
         // This method will be called when the settings are read from persistence.
         void OnSave(ConfigNode config);
 
-        void fillPartCrewManifest(PartCrewManifest sourcePCM);
+        void fillPartCrewManifest(PartCrewManifest part);
     }
 
     internal class DefaultSelectionMode : ICrewSelectionMode
@@ -58,32 +58,32 @@ namespace RealRoster
 
         public DefaultSelectionMode()
         {
-            CommonLogic.DebugMessage(TAG, "Loading DefaultSelectionMode");
+            CommonLogic.DebugMessage(TAG, "Loading " + TAG);
         }
 
         public void OnLoad(ConfigNode config) { } // This implementation does not write to the ConfigNode
         public void OnSave(ConfigNode config) { } // This implementation does not write to the ConfigNode
 
-        public void fillPartCrewManifest(PartCrewManifest sourcePCM) 
+        public void fillPartCrewManifest(PartCrewManifest part)
         {
-            int capacity = sourcePCM.PartInfo.partPrefab.CrewCapacity;
+            int capacity = part.PartInfo.partPrefab.CrewCapacity;
             int assigned = 0;
 
             // First pass removes everyone
             for (int i = 0; i < capacity; i++)
             {
-                sourcePCM.RemoveCrewFromSeat(i);
+                part.RemoveCrewFromSeat(i);
             }
 
             // Second pass places back non-blacklisted kerbs. 
             foreach (ProtoCrewMember crew in RealRosterSettings.Instance.WhiteList)
             {
-                sourcePCM.AddCrewToSeat(crew, assigned++);
+                part.AddCrewToSeat(crew, assigned++);
                 if (assigned == capacity)
                 {
                     break;
                 }
-            }      
+            }
         }
     }
 
@@ -95,19 +95,19 @@ namespace RealRoster
 
         public NullSelectionMode()
         {
-            CommonLogic.DebugMessage(TAG, "Loading NullSelectionMode");
+            CommonLogic.DebugMessage(TAG, "Loading " + TAG);
         }
 
         public void OnLoad(ConfigNode config) { } // This implementation does not write to the ConfigNode
         public void OnSave(ConfigNode config) { } // This implementation does not write to the ConfigNode
 
-        public void fillPartCrewManifest(PartCrewManifest sourcePCM)
+        public void fillPartCrewManifest(PartCrewManifest part)
         {
-            int capacity = sourcePCM.PartInfo.partPrefab.CrewCapacity;
+            int capacity = part.PartInfo.partPrefab.CrewCapacity;
             for (int i = 0; i < capacity; i++)
             {
-                sourcePCM.RemoveCrewFromSeat(i);
-            }    
+                part.RemoveCrewFromSeat(i);
+            }
         }
     }
 
@@ -119,32 +119,48 @@ namespace RealRoster
 
         public RandomSelectionMode()
         {
-            CommonLogic.DebugMessage(TAG, "Loading RandomSelectionMode");
+            CommonLogic.DebugMessage(TAG, "Loading " + TAG);
         }
 
         public void OnLoad(ConfigNode config) { } // This implementation does not write to the ConfigNode
         public void OnSave(ConfigNode config) { } // This implementation does not write to the ConfigNode
 
-        public void fillPartCrewManifest(PartCrewManifest sourcePCM)
+        public void fillPartCrewManifest(PartCrewManifest part)
         {
-            int capacity = sourcePCM.PartInfo.partPrefab.CrewCapacity;
+            int capacity = part.PartInfo.partPrefab.CrewCapacity;
 
             // First pass removes everyone
             for (int i = 0; i < capacity; i++)
             {
-                sourcePCM.RemoveCrewFromSeat(i);
+                part.RemoveCrewFromSeat(i);
             }
 
             // Second pass places back non-blacklisted kerbs.
-
             List<ProtoCrewMember> tempWhitelist = RealRosterSettings.Instance.WhiteList;
 
             for (int i = 0; (i < capacity) && (tempWhitelist.Count > 0); i++)
             {
                 ProtoCrewMember temp = tempWhitelist[UnityEngine.Random.Range(0, tempWhitelist.Count)];
                 tempWhitelist.Remove(temp);
-                sourcePCM.AddCrewToSeat(temp, i);
+                part.AddCrewToSeat(temp, i);
             }
         }
+    }
+
+    internal class RotationSelectionMode : ICrewSelectionMode
+    {
+        private static readonly string TAG = "RotationSelectionMode";
+
+        public string CleanName { get { return "Rotate Crew"; } }
+
+        public RotationSelectionMode()
+        {
+            CommonLogic.DebugMessage(TAG, "Loading " + TAG);
+        }
+
+        public void OnLoad(ConfigNode config) { } 
+        public void OnSave(ConfigNode config) { }
+
+        public void fillPartCrewManifest(PartCrewManifest part) { }
     }
 }

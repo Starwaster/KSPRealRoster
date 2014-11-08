@@ -46,7 +46,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CrewSelectionMode.cs" />
+    <Compile Include="CrewSelectionModes.cs" />
     <Compile Include="RealRosterSettings.cs" />
     <Compile Include="ToolbarManager.cs" />
     <Compile Include="RealRosterCore.cs" />

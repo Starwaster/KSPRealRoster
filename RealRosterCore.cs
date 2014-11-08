@@ -8,9 +8,53 @@ using UnityEngine;
 namespace RealRoster
 {
     [KSPAddon(KSPAddon.Startup.EditorAny, false)]
+    class PersistenceBehaviour : MonoBehaviour
+    {
+
+    }
+
+    [KSPAddon(KSPAddon.Startup.EditorAny, false)]
     class EditorBehaviour : MonoBehaviour
     {
-        private static readonly string TAG = "EditorBehaviour";       
+        private static readonly string TAG = "EditorBehaviour";
+
+        private Part firstPod = null;
+        private bool firstPodFlag = false;
+
+        void Awake()
+        {
+            GameEvents.onEditorShipModified.Add(onEditorShipModified);
+        }
+
+        void Update()
+        {
+            if (firstPodFlag)
+            {
+                CommonLogic.getDefaultManifest();
+                firstPodFlag = false;
+            }
+        }
+
+        void Destroy()
+        {
+            GameEvents.onEditorShipModified.Remove(onEditorShipModified);
+        }
+
+        void onEditorShipModified(ShipConstruct ship)
+        {
+            if (ship.Count > 0 && firstPod == null)
+            {
+                foreach (Part part in ship)
+                {
+                    if (part.isControlSource && part.CrewCapacity > 0)
+                    {
+                        firstPod = part;
+                        firstPodFlag = true;
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     [KSPAddon(KSPAddon.Startup.SpaceCentre, false)]
@@ -26,12 +70,7 @@ namespace RealRoster
         private void onVesselSelected(ShipTemplate shipTemplate)
         {
             CommonLogic.DebugMessage(TAG, "onVesselSelected()");
-            CMAssignmentDialog dialog = CMAssignmentDialog.Instance;
-            VesselCrewManifest vcm = dialog.GetManifest();
-
-            CommonLogic.getDefaultManifest(vcm);
-
-            dialog.RefreshCrewLists(vcm, false, true);
+            CommonLogic.getDefaultManifest();
         }
 
         public void Destroy()
@@ -56,10 +95,11 @@ namespace RealRoster
             }
         }
 
-        public static void getDefaultManifest(VesselCrewManifest sourceVCM) 
+        public static void getDefaultManifest() 
         {
+            VesselCrewManifest vcm = CMAssignmentDialog.Instance.GetManifest();
             CommonLogic.DebugMessage(TAG, "getDefaultManifest()");
-            foreach (PartCrewManifest pcm in sourceVCM)
+            foreach (PartCrewManifest pcm in vcm)
             {
                 // Vital bits about the part.
                 int capacity = pcm.PartInfo.partPrefab.CrewCapacity;
@@ -69,6 +109,7 @@ namespace RealRoster
                     RealRosterSettings.ActiveCSM.fillPartCrewManifest(pcm);
                 }
             }
+            CMAssignmentDialog.Instance.RefreshCrewLists(vcm, false, true);
         }
     }
 }
