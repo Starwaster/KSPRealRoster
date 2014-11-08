@@ -78,6 +78,7 @@ namespace RealRoster
             // Second pass places back non-blacklisted kerbs. 
             foreach (ProtoCrewMember crew in RealRosterSettings.Instance.WhiteList)
             {
+                CommonLogic.DebugMessage(TAG, "Assigning " + crew.name + " to the vessel.");
                 part.AddCrewToSeat(crew, assigned++);
                 if (assigned == capacity)
                 {
