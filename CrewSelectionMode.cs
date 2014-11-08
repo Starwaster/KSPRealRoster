@@ -76,19 +76,23 @@ namespace RealRoster
 
             // Second pass places back non-blacklisted kerbs. 
             List<ProtoCrewMember> roster = HighLogic.CurrentGame.CrewRoster.Kerbals(ProtoCrewMember.KerbalType.Crew, ProtoCrewMember.RosterStatus.Available).ToList();
-            for (int assigned = 0, offset = 0; assigned < capacity; assigned++)
+            ProtoCrewMember[] newRoster = new ProtoCrewMember[capacity];
+            int count = 0;
+            foreach (ProtoCrewMember kerb in roster)
             {
-                while (RealRosterSettings.Instance.BlackList.Contains(roster[assigned + offset].name))
+                if (!RealRosterSettings.Instance.BlackList.Contains(kerb.name))
                 {
-                    CommonLogic.DebugMessage(TAG, "Skipping " + roster[assigned + offset].name + " due to blacklist.");
-                    CommonLogic.DebugMessage(TAG, (assigned + offset) + " " + roster.Count);
-                    offset++;
-                    if ((assigned + offset) >= roster.Count)
-                    {
-                        return;
-                    }
+                    newRoster[count++] = kerb;
                 }
-                sourcePCM.AddCrewToSeat(roster[assigned + offset], assigned);
+                if (count > capacity)
+                {
+                    break;
+                }
+            }
+            count = (count < capacity) ? count : capacity;
+            for (int i = 0; i < count; i++)
+            {
+                sourcePCM.AddCrewToSeat(newRoster[i], i);
             }
         }
     }
