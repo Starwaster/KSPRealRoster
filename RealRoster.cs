@@ -30,7 +30,7 @@ namespace RealRoster
         Part firstPod = null;
 
         // Reference to singleton Settings class (Thanks Vendan!)
-        Settings rrSettings = Settings.Instance;
+        RealRosterSettings settings = RealRosterSettings.Instance;
 
         // Unity initialization call
         public void Awake()
@@ -41,10 +41,10 @@ namespace RealRoster
                 if (debug)
                 {
                     DebugMessage("Plugin is initializing");
-                    DebugMessage("crewAssignment: " + rrSettings.crewAssignment);
-                    DebugMessage("crewRandomization: " + rrSettings.crewRandomization);
+                    DebugMessage("crewAssignment: " + settings.crewAssignment);
+                    DebugMessage("crewRandomization: " + settings.crewRandomization);
 
-                    foreach (String name in rrSettings.blackList)
+                    foreach (String name in settings.blackList)
                     {
                         DebugMessage("BlackList: " + name);
                     }
@@ -54,17 +54,16 @@ namespace RealRoster
 
         public void Start()
         {
-                rrGUI rrGUI = new rrGUI();
-                rrGUI.init();
-            //GameEvents.onEditorShipModified.Add(onEditorShipModified);
+            RealRosterGUI gui = new RealRosterGUI();
+            gui.init();
         }
 
+        // I'm not sure this ever gets called.
         public void OnDestroy()
         {
             if (HighLogic.LoadedSceneIsEditor)
             {
-                rrSettings.eventRegistered = false;
-                DebugMessage("dESTROYYYYYY!!!");
+                settings.eventRegistered = false;
                 GameEvents.onEditorShipModified.Remove(onEditorShipModified);
             }
         }
@@ -75,12 +74,11 @@ namespace RealRoster
 
             if (HighLogic.LoadedSceneIsEditor)
             {
-                if (!rrSettings.eventRegistered)
+                if (!settings.eventRegistered)
                 {
-                DebugMessage("EVENT REGISTERED");
+                    DebugMessage("Event Registered");
                     GameEvents.onEditorShipModified.Add(onEditorShipModified);
-                    rrSettings.eventRegistered = true;
-
+                    settings.eventRegistered = true;
                 }
 
                 // Kinda kludgey, but this is where the game stores the active Manifest. It isn't always valid, and our code assumes it is valid.
@@ -112,7 +110,6 @@ namespace RealRoster
         // Occurs every time any part is 'clicked' in the editor.
         void onEditorShipModified(ShipConstruct ship)
         {
-            DebugMessage("EVENT FIRED!");
             // The main reason we hook this event is to notice that it happened. 
             // This flag primes our Update() method to fix the roster in the next frame.
             dirtyFlag = true;
@@ -132,11 +129,12 @@ namespace RealRoster
                             firstPod = part;
                             firstPodFlag = true;
                             DebugMessage("First Pod Placed!: " + firstPod.partInfo.title);
-                            break; // We are not interested in the remainder of the iteration.
+                            break; // We are not interested in the remainder of the iteration sequence.
                         }
                     }
                 }
             }
+
             // Otherwise, the root part was just deleted. This 'event' might be useful in the future, but currently this is dead code.
             else
             {
@@ -150,8 +148,9 @@ namespace RealRoster
         {
             // We are taking action, disable the action flag.
             firstPodFlag = false;
+
             // If the configuration plugin allows us to crew the first pod...
-            if (rrSettings.crewAssignment)
+            if (settings.crewAssignment)
             {
                 EditorLogic editor = EditorLogic.fetch;
                 VesselCrewManifest nextManifest = ShipConstruction.ShipManifest;
@@ -166,13 +165,12 @@ namespace RealRoster
         // Possibly need to implement some reset code in here, but does not seem needed at this time.
         // Leaving code here in case it is needed, as finding the detection criteria was annoying.
         void onRootDeletion()
-        {
-            //ShipConstruction.ShipManifest = null;
+        {            
         }
 
         // Returns the PartCrewManifest that is owned by the specified Part.
         // If the Part is not attached to the ShipConstruct, null will be returned.
-        // **REFACTOR EXISTING CODE?**
+        // **REFACTOR ME?**
         PartCrewManifest findManifestByPart(Part part)
         {
             ShipConstruct ship = EditorLogic.fetch.ship;
@@ -208,12 +206,12 @@ namespace RealRoster
             ProtoCrewMember[] crew = new ProtoCrewMember[capacity];
 			List<ProtoCrewMember> roster = new List<ProtoCrewMember>();
 
-			if (rrSettings.crewRandomization)
+			if (settings.crewRandomization)
 				roster = HighLogic.CurrentGame.CrewRoster.Kerbals(ProtoCrewMember.KerbalType.Crew, ProtoCrewMember.RosterStatus.Available).ToList();
 			else
 			{
-				roster = RRScenario.Instance.CrewRotationPool;
-				Debug.Log ("RRScenario.Instance.crewRotationRoster length = " + RRScenario.Instance.CrewRotationPool.Count.ToString ());
+				roster = RotationScenario.Instance.CrewRotationPool;
+				Debug.Log ("RRScenario.Instance.crewRotationRoster length = " + RotationScenario.Instance.CrewRotationPool.Count.ToString ());
 			}
 			Debug.Log ("Got roster, length = " + roster.Count);
 			foreach (ProtoCrewMember _kerbal in roster)
@@ -221,23 +219,19 @@ namespace RealRoster
 
             foreach (ProtoCrewMember kerbal in roster.ToList())
             {
-                if (rrSettings.blackList.Contains(kerbal.name))
+                if (settings.blackList.Contains(kerbal.name))
                 {
                     roster.Remove(kerbal);
                 }
             }
 			Debug.Log ("Processed black list");
 
-            while (roster.Count < capacity)
-            {
-                ProtoCrewMember newKerb = HighLogic.CurrentGame.CrewRoster.GetNewKerbal();
-                DebugMessage(newKerb.name + " has been hired.");
-                roster.Add(newKerb);
-            }
+            // Use either the size of the roster or the capacity of the module, whichever is lower.
+            capacity = (capacity < roster.Count) ? capacity : roster.Count;
 
             for (int idx = 0; idx < capacity; idx++)
             {
-                if (rrSettings.crewRandomization)
+                if (settings.crewRandomization)
                 {
                     crew[idx] = roster[UnityEngine.Random.Range(0, (roster.Count - 1))];
                 }

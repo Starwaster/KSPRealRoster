@@ -6,9 +6,9 @@ using UnityEngine;
 
 namespace RealRoster
 {
-    class rrGUI
+    class RealRosterGUI
     {
-        Settings rrSettings = Settings.Instance;
+        RealRosterSettings settings = RealRosterSettings.Instance;
         private IButton button;
         public static readonly String RESOURCE_PATH = "Enneract/RealRoster/Resources/";
 
@@ -20,8 +20,6 @@ namespace RealRoster
 
         public void init()
         {
-            //createTempBlacklist();
-
             _windowStyle = new GUIStyle(HighLogic.Skin.window);
             _windowStyle.fixedWidth = 250f;
             _windowStyle.fixedHeight = 400f;
@@ -38,9 +36,11 @@ namespace RealRoster
 
 
             RenderingManager.AddToPostDrawQueue(3, new Callback(drawGUI));
-            AddToolbarButton();
 
-
+            if (HighLogic.LoadedSceneIsEditor || HighLogic.LoadedScene == GameScenes.SPACECENTER)
+            {
+                AddToolbarButton();
+            }
         }
         private void AddToolbarButton()
         {
@@ -56,8 +56,7 @@ namespace RealRoster
                     settingWindowActive = !settingWindowActive;
                 };
 
-                //button.Visibility = new GameScenesVisibility(GameScenes.EDITOR, GameScenes.FLIGHT, GameScenes.SPACECENTER, GameScenes.TRACKSTATION, GameScenes.SPH);
-                button.Visibility = new GameScenesVisibility(GameScenes.SPACECENTER);
+                button.Visibility = new GameScenesVisibility(GameScenes.SPACECENTER, GameScenes.EDITOR);
             }
 
         }
@@ -73,10 +72,10 @@ namespace RealRoster
             GUILayout.BeginVertical();
 
             GUILayout.BeginHorizontal(GUILayout.ExpandWidth(false));
-            rrSettings.crewAssignment = GUILayout.Toggle(rrSettings.crewAssignment, "Auto Assign Crew", _toggleStyle);
+            settings.crewAssignment = GUILayout.Toggle(settings.crewAssignment, "Auto Assign Crew", _toggleStyle);
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal(GUILayout.ExpandWidth(false));
-            rrSettings.crewRandomization = GUILayout.Toggle(rrSettings.crewRandomization, "Randomize Crew", _toggleStyle);
+            settings.crewRandomization = GUILayout.Toggle(settings.crewRandomization, "Randomize Crew", _toggleStyle);
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal(GUILayout.ExpandWidth(false));
@@ -85,12 +84,12 @@ namespace RealRoster
 
             scrollPosition = GUILayout.BeginScrollView(scrollPosition, false, true, _hscrollBarStyle, _vscrollBarStyle, _scrollStyle);
 
-            foreach (String kerbal in rrSettings.blackList)
+            foreach (String kerbal in settings.blackList)
             {
                 GUILayout.BeginHorizontal(GUILayout.ExpandWidth(false));
                 if (GUILayout.Button(kerbal))
                 {
-                    rrSettings.blackList.Remove(kerbal);
+                    settings.blackList.Remove(kerbal);
 
                 }
                 GUILayout.EndHorizontal();
@@ -99,18 +98,17 @@ namespace RealRoster
          
             GUILayout.EndScrollView();
 
-            //// Iterate through all Kerbals (including those not on a mission).
+            // Iterate through all Kerbals (including those not on a mission).
             List<ProtoCrewMember> roster = HighLogic.CurrentGame.CrewRoster.Kerbals(ProtoCrewMember.KerbalType.Crew, ProtoCrewMember.RosterStatus.Available).ToList();
             GUILayout.Label("Crew: (Click to add to Blacklist)", _labelStyle);
             scrollPosition2 = GUILayout.BeginScrollView(scrollPosition2, GUILayout.ExpandWidth(true), GUILayout.Height(100));
             foreach (ProtoCrewMember kerbal in roster)
             {
-                if (!rrSettings.blackList.Contains(kerbal.name))
+                if (!settings.blackList.Contains(kerbal.name))
                 {
                     if (GUILayout.Button(kerbal.name))
                     {
-                        rrSettings.blackList.Add(kerbal.name);
-
+                        settings.blackList.Add(kerbal.name);
                     }
                 }
             }
@@ -121,16 +119,15 @@ namespace RealRoster
             if (GUILayout.Button("Reset To Default", _buttonStyle))
             {
                 //settingWindowActive = false;
-                rrSettings.Reset();
+                settings.Reset();
             }
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal(GUILayout.ExpandHeight(false));
             if (GUILayout.Button("Apply", _buttonStyle))
             {
-                //TODO: Save
                 settingWindowActive = false;
-                rrSettings.Save();
+                settings.Save();
             }
             GUILayout.EndHorizontal();
 
@@ -143,7 +140,6 @@ namespace RealRoster
         {
             if (settingWindowActive)
             {
-
                 windowPos = GUILayout.Window(0, windowPos, mainGUI, "RealRoster Settings", _windowStyle);
             }
         }

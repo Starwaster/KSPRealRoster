@@ -7,22 +7,22 @@ using UnityEngine;
 
 namespace RealRoster
 {
-    public class Settings
+    public class RealRosterSettings
     {
-        public static Settings Instance
+        public static RealRosterSettings Instance
         {
             get
             {
                 if (_instance == null)
                 {
-                    _instance = new Settings();
+                    _instance = new RealRosterSettings();
                     _instance.Load();
                 }
                 return _instance;
             }
         }
         
-        private static Settings _instance;
+        private static RealRosterSettings _instance;
         protected String filePath = KSPUtil.ApplicationRootPath + "GameData/Enneract/RealRoster/Plugins/RealRoster.cfg";
         [Persistent]
         public bool crewAssignment;
@@ -36,7 +36,7 @@ namespace RealRoster
         //[Persistent]
         public bool eventRegistered;
 
-        public Settings()
+        public RealRosterSettings()
         {
             crewAssignment = true;
             crewRandomization = true;
