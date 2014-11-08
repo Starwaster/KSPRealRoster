@@ -17,8 +17,31 @@ namespace RealRoster
         private static readonly string TAG = "SettingsModule";
         private static readonly string CAPTION = "RealRoster";
 
-        //Manual Persistent Fields
-        public List<string> BlackList { get { return new List<string>(privateBlackList); } }
+        // Misc
+        public List<ProtoCrewMember> FullRoster
+        {
+            get
+            {
+                return HighLogic.CurrentGame.CrewRoster.Kerbals(ProtoCrewMember.KerbalType.Crew, ProtoCrewMember.RosterStatus.Available).ToList();
+            }
+        }
+
+        public List<ProtoCrewMember> WhiteList
+        {
+            get
+            {
+                return FullRoster.Except(BlackList).ToList();
+            }
+        }
+
+        public List<ProtoCrewMember> BlackList
+        { 
+            get
+            {
+                return FullRoster.Where(kerb => privateBlackList.Contains(kerb.name)).ToList();
+            }
+        }
+
         private List<string> privateBlackList = new List<string>();
 
         public static RealRosterSettings Instance = null;
@@ -60,6 +83,11 @@ namespace RealRoster
         void Start()
         {
             CommonLogic.DebugMessage(TAG, "Start...");
+
+            foreach (ProtoCrewMember kerb in BlackList)
+            {
+                CommonLogic.DebugMessage(TAG, kerb.name);
+            }
             Instance = this;
 
             ModeTextArray = new string[CrewSelectionModeLoader.Instance.LoadedModes.Count];
@@ -134,36 +162,29 @@ namespace RealRoster
             GUILayout.Label("Automatic Crew Mode", _labelStyle);
             GUILayout.EndHorizontal();
 
-            List<string> tempBlackList = new List<string>(privateBlackList);
-
             CrewSelectionModeIndex = GUILayout.SelectionGrid(CrewSelectionModeIndex, ModeTextArray, 1, _buttonStyle);
 
             GUILayout.Label("Crew: (Click to add to Blacklist)", _labelStyle);
             RosterScrollPosition = GUILayout.BeginScrollView(RosterScrollPosition, GUILayout.ExpandWidth(true), GUILayout.Height(200));
-            foreach (ProtoCrewMember kerbal in HighLogic.CurrentGame.CrewRoster.Kerbals(ProtoCrewMember.KerbalType.Crew, ProtoCrewMember.RosterStatus.Available).ToList())
+            foreach (ProtoCrewMember kerbal in WhiteList)
             {
-                if (!privateBlackList.Contains(kerbal.name))
+                if (GUILayout.Button(kerbal.name, _buttonStyle))
                 {
-                    if (GUILayout.Button(kerbal.name, _buttonStyle))
-                    {
-                        tempBlackList.Add(kerbal.name);
-                    }
+                    privateBlackList.Add(kerbal.name);
                 }
             }
             GUILayout.EndScrollView();
 
             GUILayout.Label("Blacklist: (Click to Remove)", _labelStyle);
             BlackListScrollPosition = GUILayout.BeginScrollView(BlackListScrollPosition, GUILayout.ExpandWidth(true), GUILayout.Height(200));
-            foreach (string kerbal in privateBlackList)
+            foreach (ProtoCrewMember kerbal in BlackList)
             {
-                if (GUILayout.Button(kerbal, _buttonStyle))
+                if (GUILayout.Button(kerbal.name, _buttonStyle))
                 {
-                    tempBlackList.Remove(kerbal);
+                    privateBlackList.Remove(kerbal.name);
                 }
             }
             GUILayout.EndScrollView();
-
-            privateBlackList = tempBlackList;
 
             GUI.DragWindow();        
         }
@@ -174,10 +195,10 @@ namespace RealRoster
             base.OnSave(config);
 
             ConfigNode blacklistNode = new ConfigNode("BLACKLIST_NODE");
-            foreach (string name in BlackList)
+            foreach (ProtoCrewMember kerb in BlackList)
             {
-                CommonLogic.DebugMessage(TAG, "Writing '" + name + "' to blacklist node");
-                blacklistNode.AddValue("kerbal", name);
+                CommonLogic.DebugMessage(TAG, "Writing '" + kerb.name + "' to blacklist node");
+                blacklistNode.AddValue("kerbal", kerb.name);
             }
             config.AddNode(blacklistNode);
 

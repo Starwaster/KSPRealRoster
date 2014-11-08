@@ -67,6 +67,7 @@ namespace RealRoster
         public void fillPartCrewManifest(PartCrewManifest sourcePCM) 
         {
             int capacity = sourcePCM.PartInfo.partPrefab.CrewCapacity;
+            int assigned = 0;
 
             // First pass removes everyone
             for (int i = 0; i < capacity; i++)
@@ -75,25 +76,14 @@ namespace RealRoster
             }
 
             // Second pass places back non-blacklisted kerbs. 
-            List<ProtoCrewMember> roster = HighLogic.CurrentGame.CrewRoster.Kerbals(ProtoCrewMember.KerbalType.Crew, ProtoCrewMember.RosterStatus.Available).ToList();
-            ProtoCrewMember[] newRoster = new ProtoCrewMember[capacity];
-            int count = 0;
-            foreach (ProtoCrewMember kerb in roster)
+            foreach (ProtoCrewMember crew in RealRosterSettings.Instance.WhiteList)
             {
-                if (!RealRosterSettings.Instance.BlackList.Contains(kerb.name))
-                {
-                    newRoster[count++] = kerb;
-                }
-                if (count > capacity)
+                sourcePCM.AddCrewToSeat(crew, assigned++);
+                if (assigned == capacity)
                 {
                     break;
                 }
-            }
-            count = (count < capacity) ? count : capacity;
-            for (int i = 0; i < count; i++)
-            {
-                sourcePCM.AddCrewToSeat(newRoster[i], i);
-            }
+            }      
         }
     }
 
@@ -135,6 +125,26 @@ namespace RealRoster
         public void OnLoad(ConfigNode config) { } // This implementation does not write to the ConfigNode
         public void OnSave(ConfigNode config) { } // This implementation does not write to the ConfigNode
 
-        public void fillPartCrewManifest(PartCrewManifest sourcePCM) { }
+        public void fillPartCrewManifest(PartCrewManifest sourcePCM)
+        {
+            int capacity = sourcePCM.PartInfo.partPrefab.CrewCapacity;
+
+            // First pass removes everyone
+            for (int i = 0; i < capacity; i++)
+            {
+                sourcePCM.RemoveCrewFromSeat(i);
+            }
+
+            // Second pass places back non-blacklisted kerbs.
+
+            List<ProtoCrewMember> tempWhitelist = RealRosterSettings.Instance.WhiteList;
+
+            for (int i = 0; (i < capacity) && (tempWhitelist.Count > 0); i++)
+            {
+                ProtoCrewMember temp = tempWhitelist[UnityEngine.Random.Range(0, tempWhitelist.Count)];
+                tempWhitelist.Remove(temp);
+                sourcePCM.AddCrewToSeat(temp, i);
+            }
+        }
     }
 }
