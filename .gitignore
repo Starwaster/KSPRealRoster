@@ -6,6 +6,9 @@
 *.user
 *.userosscache
 *.sln.docstates
+*.userprefs
+*.csproj
+RealRoster.csproj
 
 # Build results
 [Dd]ebug/
