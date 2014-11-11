@@ -21,7 +21,7 @@ namespace RealRoster
 
 		//private List<ProtoCrewMember> _crewRotationPool;
 
-		public IEnumerable<ProtoCrewMember> roster = HighLogic.CurrentGame.CrewRoster.Kerbals(ProtoCrewMember.KerbalType.Crew, ProtoCrewMember.RosterStatus.Available).ToList();
+		private IEnumerable<ProtoCrewMember> roster = HighLogic.CurrentGame.CrewRoster.Kerbals(ProtoCrewMember.KerbalType.Crew, ProtoCrewMember.RosterStatus.Available).ToList();
 
 		public List<ProtoCrewMember> CrewRotationPool
 		{
@@ -29,11 +29,34 @@ namespace RealRoster
 			{
 				return new List<ProtoCrewMember>(crewRotationPool);
 				//this._crewRotationPool = new List<ProtoCrewMember>(crewRotationPool);
-				Debug.Log ("RealRoster.RRScenario.CrewRotationPool() sending " + this.crewRotationPool.Count.ToString() + " element list. (original: " + this.crewRotationPool.Count.ToString () + ")");
+				//Debug.Log ("RealRoster.RRScenario.CrewRotationPool() sending " + this.crewRotationPool.Count.ToString() + " element list. (original: " + this.crewRotationPool.Count.ToString () + ")");
 				//return this._crewRotationPool;
 			}
 		}
 
+		public List<ProtoCrewMember> FullRoster
+		{
+			get
+			{
+				return CrewRotationPool;
+			}
+		}
+		
+		public List<ProtoCrewMember> WhiteList
+		{
+			get
+			{
+				return FullRoster.Except(BlackList).ToList();
+			}
+		}
+		
+		public List<ProtoCrewMember> BlackList
+		{ 
+			get
+			{
+				return FullRoster.Where(kerb => RealRosterSettings.Instance.BlackList.Contains(kerb)).ToList();
+			}
+		}
 
 
 		public double CRPTimeStamp;

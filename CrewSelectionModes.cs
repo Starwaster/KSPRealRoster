@@ -162,6 +162,27 @@ namespace RealRoster
         public void OnLoad(ConfigNode config) { } 
         public void OnSave(ConfigNode config) { }
 
-        public void fillPartCrewManifest(PartCrewManifest part) { }
+        public void fillPartCrewManifest(PartCrewManifest part)
+		{
+			int capacity = part.PartInfo.partPrefab.CrewCapacity;
+			int assigned = 0;
+			
+			// First pass removes everyone
+			for (int i = 0; i < capacity; i++)
+			{
+				part.RemoveCrewFromSeat(i);
+			}
+			
+			// Second pass places back non-blacklisted kerbs. 
+			foreach (ProtoCrewMember crew in RotationScenario.Instance.WhiteList)
+			{
+				CommonLogic.DebugMessage(TAG, "Assigning " + crew.name + " to the vessel.");
+				part.AddCrewToSeat(crew, assigned++);
+				if (assigned == capacity)
+				{
+					break;
+				}
+			}
+		}
     }
 }
